@@ -21,7 +21,6 @@ namespace BM
                 if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Local)
                 {
 #if UNITY_EDITOR
-                    AssetComponentConfig.LocalBundlePath = Application.dataPath + "/../BuildBundles/";
                     AssetComponentConfig.HotfixPath = AssetComponentConfig.LocalBundlePath;
 #else
                     AssetLogHelper.LogError("AssetLoadMode = AssetLoadMode.Develop 只能在编辑器下运行");
