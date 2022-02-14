@@ -39,12 +39,16 @@ namespace BM
             {
                 //获取单个Bundle的配置文件
                 Build(assetLoadTable, assetsLoadSetting);
-                
-                //构建完成后索引自动+1 需要自己取消注释
-                // assetsLoadSetting.BuildIndex++;
-                // EditorUtility.SetDirty(assetsLoadSetting);
-                // AssetDatabase.SaveAssets();
             }
+            
+            //构建完成后索引自动+1 需要自己取消注释
+            foreach (AssetsLoadSetting assetsLoadSetting in assetLoadTable.AssetsLoadSettings)
+            {
+                assetsLoadSetting.BuildIndex++;
+                EditorUtility.SetDirty(assetsLoadSetting);
+            }
+            AssetDatabase.SaveAssets();
+            
             //打包结束
             AssetLogHelper.Log("打包结束");
         }
@@ -85,6 +89,7 @@ namespace BM
                     File.Copy(filePath, Path.Combine(directoryPath, fileInfo.Name));
                 }
             }
+            AssetLogHelper.Log("已将资源复制到StreamingAssets");
         }
         
         private static void Build(AssetLoadTable assetLoadTable, AssetsLoadSetting assetsLoadSetting)
