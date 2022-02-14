@@ -31,7 +31,12 @@ namespace BM
                     waitDown.SetResult();
                 };
                 await waitDown;
+
+#if UNITY_2020_1_OR_NEWER
                 if (webRequest.result != UnityWebRequest.Result.Success)
+#else
+                if (!string.IsNullOrEmpty(webRequest.error))
+#endif
                 {
                     AssetLogHelper.Log("下载Bundle失败 重试\n" + webRequest.error);
                     return null;
