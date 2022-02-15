@@ -42,12 +42,12 @@ namespace BM
             }
             
             //构建完成后索引自动+1 需要自己取消注释
-            foreach (AssetsLoadSetting assetsLoadSetting in assetLoadTable.AssetsLoadSettings)
-            {
-                assetsLoadSetting.BuildIndex++;
-                EditorUtility.SetDirty(assetsLoadSetting);
-            }
-            AssetDatabase.SaveAssets();
+            // foreach (AssetsLoadSetting assetsLoadSetting in assetLoadTable.AssetsLoadSettings)
+            // {
+            //     assetsLoadSetting.BuildIndex++;
+            //     EditorUtility.SetDirty(assetsLoadSetting);
+            // }
+            // AssetDatabase.SaveAssets();
             
             //打包结束
             AssetLogHelper.Log("打包结束");
@@ -317,14 +317,16 @@ namespace BM
     
         private static string GetBundleName(AssetsLoadSetting assetsLoadSetting, string filePath)
         {
+            string bundlePackageName = assetsLoadSetting.BuildName.ToLower();
             if (assetsLoadSetting.NameByHash)
             {
-                filePath = VerifyHelper.GetMd5Hash(filePath);
+                filePath = VerifyHelper.GetMd5Hash(bundlePackageName + filePath);
             }
             else
             {
                 filePath = filePath.Replace('/', '_');
                 filePath = filePath.Replace('.', '_');
+                filePath = bundlePackageName + "_" + filePath;
             }
             return filePath;
         }
