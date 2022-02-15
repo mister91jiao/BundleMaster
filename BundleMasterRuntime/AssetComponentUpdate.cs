@@ -37,20 +37,22 @@ namespace BM
                 {
                     continue;
                 }
-                //获取本地的VersionLog
-                string localVersionLogExistPath = BundleFileExistPath(bundlePackageName, "VersionLogs.txt");
-                if (localVersionLogExistPath == null)
-                {
-                    AssetLogHelper.LogError("获取本地的更新索引列表失败: " + bundlePackageName);
-                    continue;
-                }
                 //创建记录需要更新的Bundle的信息
                 List<string> allRemoteVersionFiles = new List<string>();
                 updateBundleDataInfo.PackageAllRemoteVersionFile.Add(bundlePackageName, allRemoteVersionFiles);
                 string localVersionLog;
-                using (StreamReader sr = new StreamReader(localVersionLogExistPath))
+                //获取本地的VersionLog
+                string localVersionLogExistPath = BundleFileExistPath(bundlePackageName, "VersionLogs.txt");
+                if (localVersionLogExistPath != null)
                 {
-                    localVersionLog = await sr.ReadToEndAsync();
+                    using (StreamReader sr = new StreamReader(localVersionLogExistPath))
+                    {
+                        localVersionLog = await sr.ReadToEndAsync();
+                    }
+                }
+                else
+                {
+                    localVersionLog = "INIT|0";
                 }
                 Dictionary<string, long> needUpdateBundlesInfo = GetNeedUpdateBundle(bundlePackageName, remoteVersionLog, localVersionLog, allRemoteVersionFiles);
                 updateBundleDataInfo.PackageNeedUpdateBundlesInfos.Add(bundlePackageName, needUpdateBundlesInfo);
