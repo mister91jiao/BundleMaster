@@ -12,7 +12,7 @@ namespace BM
         /// <summary>
         /// 分包配置文件资源目录
         /// </summary>
-        private static string AssetLoadTablePath = "Assets/Editor/BundleMasterEditor/BuildSettings/AssetLoadTable.asset";
+        public static string AssetLoadTablePath = "Assets/Editor/BundleMasterEditor/BuildSettings/AssetLoadTable.asset";
         
         [MenuItem("Tools/BuildAsset/创建分包总索引文件")]
         //[MenuItem("Assets/Create/BuildAsset/创建分包总索引文件")]
@@ -35,6 +35,14 @@ namespace BM
         {
             AssetLoadTable assetLoadTable = AssetDatabase.LoadAssetAtPath<AssetLoadTable>(AssetLoadTablePath);
             List<AssetsLoadSetting> assetsLoadSettings = assetLoadTable.AssetsLoadSettings;
+            //开始构建前剔除多余场景
+            List<EditorBuildSettingsScene> editorBuildSettingsScenes = new List<EditorBuildSettingsScene>();
+            foreach (SceneAsset sceneAsset in assetLoadTable.InitScene)
+            {
+                editorBuildSettingsScenes.Add(new EditorBuildSettingsScene(AssetDatabase.GetAssetPath(sceneAsset), true));
+            }
+            EditorBuildSettings.scenes = editorBuildSettingsScenes.ToArray();
+            //构建所有分包
             foreach (AssetsLoadSetting assetsLoadSetting in assetsLoadSettings)
             {
                 //获取单个Bundle的配置文件
@@ -346,8 +354,5 @@ namespace BM
             }
             return filePath;
         }
-        
     }
 }
-
-

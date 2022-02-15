@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using UnityEditor;
 using UnityEngine;
 
 namespace BM
@@ -20,7 +21,11 @@ namespace BM
         [Header("绝对路径")]
         [Tooltip("自己填的绝对路径")] 
         public string RelativePath = "";
-        
+
+        [Header("初始场景")]
+        [Tooltip("最后不打Bundle直接打进包体里的场景(Scene In Build 里填的场景)")] 
+        public List<SceneAsset> InitScene = new List<SceneAsset>();
+
         /// <summary>
         /// 返回打包路径
         /// </summary>
