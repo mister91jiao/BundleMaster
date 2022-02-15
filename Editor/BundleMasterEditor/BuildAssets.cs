@@ -164,23 +164,31 @@ namespace BM
                         }
                         continue;
                     }
-                    if (files.Contains(depend))
-                    {
-                        continue;
-                    }
                     if (!depend.StartsWith("Assets/"))
                     {
                         continue;
                     }
-                    realDepends.Add(depend);
-                    if (dependenciesIndex.ContainsKey(depend))
+                    if (files.Contains(depend))
                     {
-                        dependenciesIndex[depend]++;
+                        if (depend == file)
+                        {
+                            continue;
+                        }
                     }
                     else
                     {
-                        dependenciesIndex.Add(depend, 1);
+                        //作为依赖计算被依赖的次数
+                        if (dependenciesIndex.ContainsKey(depend))
+                        {
+                            dependenciesIndex[depend]++;
+                        }
+                        else
+                        {
+                            dependenciesIndex.Add(depend, 1);
+                        }
                     }
+                    //作为文件被依赖了直接添加就行
+                    realDepends.Add(depend);
                 }
                 allLoadBaseAndDepends.Add(file, realDepends.ToArray());
             }
@@ -215,6 +223,14 @@ namespace BM
                             loadDepend.FilePath = depend;
                             loadDepend.AssetBundleName = GetBundleName(assetsLoadSetting, depend) + "." + assetsLoadSetting.BundleVariant;
                             loadDependDic.Add(depend, loadDepend);
+                        }
+                    }
+                    else
+                    {
+                        //说明这是一个被依赖的File
+                        if (files.Contains(depend))
+                        {
+                            depends.Add(depend);
                         }
                     }
                 }
