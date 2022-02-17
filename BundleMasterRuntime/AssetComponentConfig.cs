@@ -14,7 +14,7 @@ namespace BM
         public static AssetLoadMode AssetLoadMode = AssetLoadMode.Local;
         
         /// <summary>
-        /// 资源更新目录 Application.dataPath + "../HotfixBundles/"
+        /// 资源更新目录 Application.dataPath + "/../HotfixBundles/"
         /// </summary>
         public static string HotfixPath = Application.persistentDataPath;
 

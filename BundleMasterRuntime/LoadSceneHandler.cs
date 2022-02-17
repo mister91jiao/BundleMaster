@@ -30,6 +30,11 @@ namespace BM
         {
             AssetPath = scenePath;
             BundlePackageName = bundlePackageName;
+            if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
+            {
+                //Develop模式直接返回
+                return;
+            }
             //先找到对应加载的LoadFile类
             if (!AssetComponent.BundleNameToRuntimeInfo[BundlePackageName].LoadFileDic.TryGetValue(AssetPath, out LoadFile loadFile))
             {

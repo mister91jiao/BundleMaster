@@ -104,8 +104,7 @@ namespace BM
             LoadSceneHandler loadSceneHandler = new LoadSceneHandler(scenePath, bundlePackageName);
             if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
             {
-                //Develop模式加载场景待写
-                
+                //Develop模式不需要加载场景
                 return loadSceneHandler;
             }
             if (!BundleNameToRuntimeInfo.TryGetValue(bundlePackageName, out BundleRuntimeInfo bundleRuntimeInfo))
