@@ -20,9 +20,11 @@ namespace BM
                 updateBundleDataInfo.NeedUpdate = false;
                 if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Local)
                 {
-#if UNITY_EDITOR
                     AssetComponentConfig.HotfixPath = AssetComponentConfig.LocalBundlePath;
-#else
+                }
+                else
+                {
+#if !UNITY_EDITOR
                     AssetLogHelper.LogError("AssetLoadMode = AssetLoadMode.Develop 只能在编辑器下运行");
 #endif
                 }
