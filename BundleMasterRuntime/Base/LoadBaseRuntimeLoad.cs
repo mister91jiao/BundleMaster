@@ -75,7 +75,15 @@ namespace BM
                 return;
             }
             string assetBundlePath = AssetComponent.BundleFileExistPath(bundlePackageName, AssetBundleName);
-            AssetBundle = AssetBundle.LoadFromFile(assetBundlePath);
+            
+            if (AssetComponent.BundleNameToSecretKey.ContainsKey(bundlePackageName))
+            {
+                AssetBundle = AssetBundle.LoadFromMemory(VerifyHelper.GetDecryptData(assetBundlePath, AssetComponent.BundleNameToSecretKey[bundlePackageName]));
+            }
+            else
+            {
+                AssetBundle = AssetBundle.LoadFromFile(assetBundlePath);
+            }
             _loadState = LoadState.Finish;
             for (int i = 0; i < _loadFinishTasks.Count; i++)
             {
@@ -100,7 +108,14 @@ namespace BM
             _loadFinishTasks.Add(tcs);
             _loadState = LoadState.Loading;
             string assetBundlePath = AssetComponent.BundleFileExistPath(bundlePackageName, AssetBundleName);
-            _assetBundleCreateRequest = AssetBundle.LoadFromFileAsync(assetBundlePath);
+            if (AssetComponent.BundleNameToSecretKey.ContainsKey(bundlePackageName))
+            {
+                _assetBundleCreateRequest = AssetBundle.LoadFromMemoryAsync(VerifyHelper.GetDecryptData(assetBundlePath, AssetComponent.BundleNameToSecretKey[bundlePackageName]));
+            }
+            else
+            {
+                _assetBundleCreateRequest = AssetBundle.LoadFromFileAsync(assetBundlePath);
+            }
             _assetBundleCreateRequest.completed += operation =>
             {
                 AssetBundle = _assetBundleCreateRequest.assetBundle;

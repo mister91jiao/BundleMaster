@@ -48,6 +48,43 @@ namespace BM
         }
         
         /// <summary>
+        /// 创建加密过的数据
+        /// </summary>
+        public static byte[] CreateEncryptData(string filePath, string secretKey)
+        {
+            byte[] encryptData;
+            char[] key = secretKey.ToCharArray();
+            using (FileStream fs = new FileStream(filePath, FileMode.Open))
+            {
+                encryptData = new byte[fs.Length];
+                fs.Read(encryptData, 0, encryptData.Length);
+                for (int i = 0; i < encryptData.Length; i++)
+                {
+                    encryptData[i] = (byte)(encryptData[i] ^ key[i % key.Length]);
+                }
+            }
+            return encryptData;
+        }
+        
+        /// <summary>
+        /// 获取解密的数据
+        /// </summary>
+        public static byte[] GetDecryptData(string filePath, char[] secretKey)
+        {
+            byte[] encryptData;
+            using (FileStream fs = new FileStream(filePath, FileMode.Open))
+            {
+                encryptData = new byte[fs.Length];
+                fs.Read(encryptData, 0, encryptData.Length);
+                for (int i = 0; i < encryptData.Length; i++)
+                {
+                    encryptData[i] = (byte)(encryptData[i] ^ secretKey[i % secretKey.Length]);
+                }
+            }
+            return encryptData;
+        }
+        
+        /// <summary>
         /// 得到一个路径下文件的大小
         /// </summary>
         public static long GetFileLength(string filePath)

@@ -10,7 +10,7 @@ namespace BM
     /// </summary>
     public class AssetLoadTable : ScriptableObject
     {
-        [Header("相对构建路径")]
+        [Header("相对构建路径文件夹名称")]
         [Tooltip("构建的资源的相对路径(Assets同级目录下的路径)")] 
         public string BundlePath = "BuildBundles";
 
@@ -19,8 +19,12 @@ namespace BM
         public bool EnableRelativePath = false;
         
         [Header("绝对路径")]
-        [Tooltip("自己填的绝对路径")] 
+        [Tooltip("自己填的绝对路径，替换掉Assets同级路径")] 
         public string RelativePath = "";
+        
+        [Header("加密资源文件夹名称")]
+        [Tooltip("加密的资源所在的和普通资源同级路径的文件夹名称")] 
+        public string EncryptPathFolder = "EncryptAssets";
 
         [Header("初始场景")]
         [Tooltip("最后不打Bundle直接打进包体里的场景(Scene In Build 里填的场景)")] 
@@ -35,9 +39,9 @@ namespace BM
             {
                 if (EnableRelativePath)
                 {
-                    return RelativePath;
+                    return Path.Combine(RelativePath, BundlePath);
                 }
-                string path = $"{Application.dataPath}/../{BundlePath}";
+                string path = Path.Combine(Application.dataPath + "/../", BundlePath);
                 DirectoryInfo info;
                 if (!Directory.Exists(path))
                 {

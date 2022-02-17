@@ -1,6 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using UnityEditor;
+using UnityEngine;
+using Directory = UnityEngine.Windows.Directory;
 
 namespace BM
 {
@@ -38,6 +41,27 @@ namespace BM
                         }
                     }
                     Er(subfolders[i]);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 创建加密的AssetBundle
+        /// </summary>
+        public static void CreateEncryptAssets(string bundlePackagePath, string encryptAssetPath, AssetBundleManifest manifest)
+        {
+            string[] assetBundles = manifest.GetAllAssetBundles();
+            foreach (string assetBundle in assetBundles)
+            {
+                string bundlePath = Path.Combine(bundlePackagePath, assetBundle);
+                if (!Directory.Exists(encryptAssetPath))
+                {
+                    Directory.CreateDirectory(encryptAssetPath);
+                }
+                using (FileStream fs = new FileStream(Path.Combine(encryptAssetPath, assetBundle), FileMode.OpenOrCreate))
+                {
+                    byte[] encryptBytes = VerifyHelper.CreateEncryptData(bundlePath, "mister91jiao");
+                    fs.Write(encryptBytes, 0, encryptBytes.Length);
                 }
             }
         }

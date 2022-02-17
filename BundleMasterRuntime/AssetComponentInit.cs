@@ -12,11 +12,15 @@ namespace BM
         /// Bundle初始化的信息
         /// </summary>
         public static readonly Dictionary<string, BundleRuntimeInfo> BundleNameToRuntimeInfo = new Dictionary<string, BundleRuntimeInfo>();
+        /// <summary>
+        /// 分包名称和其对应的密钥
+        /// </summary>
+        public static readonly Dictionary<string, char[]> BundleNameToSecretKey = new Dictionary<string, char[]>();
     
         /// <summary>
         /// 初始化
         /// </summary>
-        public static async ETTask Initialize(string bundlePackageName)
+        public static async ETTask Initialize(string bundlePackageName, string secretKey = null)
         {
             if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
             {
@@ -30,7 +34,10 @@ namespace BM
             }
             BundleRuntimeInfo bundleRuntimeInfo = new BundleRuntimeInfo();
             BundleNameToRuntimeInfo.Add(bundlePackageName, bundleRuntimeInfo);
-            
+            if (secretKey != null)
+            {
+                BundleNameToSecretKey.Add(bundlePackageName, secretKey.ToCharArray());
+            }
             //判断Bundle信息文件是否存在
             string fileLogsPath = BundleFileExistPath(bundlePackageName, "FileLogs.txt");
             if (fileLogsPath == null)
@@ -94,7 +101,15 @@ namespace BM
             string shaderPath = BundleFileExistPath(bundlePackageName, "shader_" + bundlePackageName.ToLower());
             if (shaderPath != null)
             {
-                AssetBundleCreateRequest request = AssetBundle.LoadFromFileAsync(shaderPath);
+                AssetBundleCreateRequest request;
+                if (BundleNameToSecretKey.ContainsKey(bundlePackageName))
+                {
+                    request = AssetBundle.LoadFromMemoryAsync(VerifyHelper.GetDecryptData(shaderPath, BundleNameToSecretKey[bundlePackageName]));
+                }
+                else
+                {
+                    request = AssetBundle.LoadFromFileAsync(shaderPath);
+                }
                 request.completed += operation => tcs.SetResult();
             }
             else

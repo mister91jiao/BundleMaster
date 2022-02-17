@@ -42,6 +42,13 @@ namespace BM
                 editorBuildSettingsScenes.Add(new EditorBuildSettingsScene(AssetDatabase.GetAssetPath(sceneAsset), true));
             }
             EditorBuildSettings.scenes = editorBuildSettingsScenes.ToArray();
+            //清空加密资源的文件夹
+            string encryptAssetFolderPath = Path.Combine(assetLoadTable.BuildBundlePath + "/../", assetLoadTable.EncryptPathFolder);
+            if (!Directory.Exists(encryptAssetFolderPath))
+            {
+                Directory.CreateDirectory(encryptAssetFolderPath);
+            }
+            DeleteHelper.DeleteDir(encryptAssetFolderPath);
             //构建所有分包
             foreach (AssetsLoadSetting assetsLoadSetting in assetsLoadSettings)
             {
@@ -58,7 +65,7 @@ namespace BM
             // AssetDatabase.SaveAssets();
             
             //打包结束
-            AssetLogHelper.Log("打包结束");
+            AssetLogHelper.Log("打包结束\n" + assetLoadTable.BuildBundlePath);
         }
         
         [MenuItem("Tools/BuildAsset/Copy资源到StreamingAssets")]
@@ -70,16 +77,23 @@ namespace BM
             }
             DeleteHelper.DeleteDir(Application.streamingAssetsPath);
             AssetLoadTable assetLoadTable = AssetDatabase.LoadAssetAtPath<AssetLoadTable>(AssetLoadTablePath);
-            DirectoryInfo buildBundlePath = new DirectoryInfo(assetLoadTable.BuildBundlePath);
-            DirectoryInfo[] directoryInfos = buildBundlePath.GetDirectories();
-            foreach (DirectoryInfo directoryInfo in directoryInfos)
+            foreach (AssetsLoadSetting assetsLoadSetting in assetLoadTable.AssetsLoadSettings)
             {
-                string directoryPath = Path.Combine(Application.streamingAssetsPath, directoryInfo.Name);
+                string assetPathFolder;
+                if (assetsLoadSetting.EncryptAssets)
+                {
+                    assetPathFolder = Path.Combine(assetLoadTable.BuildBundlePath + "/../", assetLoadTable.EncryptPathFolder, assetsLoadSetting.BuildName);
+                }
+                else
+                {
+                    assetPathFolder = Path.Combine(assetLoadTable.BuildBundlePath, assetsLoadSetting.BuildName);
+                }
+                string directoryPath = Path.Combine(Application.streamingAssetsPath, assetsLoadSetting.BuildName);
                 if (!Directory.Exists(directoryPath))
                 {
                     Directory.CreateDirectory(directoryPath);
                 }
-                DirectoryInfo subBundlePath = new DirectoryInfo(Path.Combine(assetLoadTable.BuildBundlePath, directoryInfo.Name));
+                DirectoryInfo subBundlePath = new DirectoryInfo(assetPathFolder);
                 FileInfo[] fileInfos = subBundlePath.GetFiles();
                 foreach (FileInfo fileInfo in fileInfos)
                 {
@@ -97,6 +111,7 @@ namespace BM
                     File.Copy(filePath, Path.Combine(directoryPath, fileInfo.Name));
                 }
             }
+            AssetDatabase.Refresh();
             AssetLogHelper.Log("已将资源复制到StreamingAssets");
         }
         
@@ -260,8 +275,21 @@ namespace BM
             string bundlePackagePath = Path.Combine(assetLoadTable.BuildBundlePath, assetsLoadSetting.BuildName);
             AssetBundleManifest manifest = BuildPipeline.BuildAssetBundles(bundlePackagePath, allAssetBundleBuild.ToArray(), 
                 BuildAssetBundleOptions.UncompressedAssetBundle, EditorUserBuildSettings.activeBuildTarget);
-            //保存版本号文件
-            SaveBundleVersionFile(bundlePackagePath, manifest, assetsLoadSetting);
+            //保存未加密的版本号文件
+            SaveBundleVersionFile(bundlePackagePath, manifest, assetsLoadSetting, false);
+            //如果此分包需要加密就生成加密的资源
+            if (assetsLoadSetting.EncryptAssets)
+            {
+                string encryptAssetPath = Path.Combine(assetLoadTable.BuildBundlePath + "/../", assetLoadTable.EncryptPathFolder, assetsLoadSetting.BuildName);
+                //创建加密的资源
+                BuildAssetsTools.CreateEncryptAssets(bundlePackagePath, encryptAssetPath, manifest);
+                //保存加密的版本号文件
+                SaveBundleVersionFile(encryptAssetPath, manifest, assetsLoadSetting, true);
+                //复制Log信息
+                File.Copy(Path.Combine(assetLoadTable.BuildBundlePath, assetsLoadSetting.BuildName, "FileLogs.txt"), Path.Combine(encryptAssetPath, "FileLogs.txt"));
+                File.Copy(Path.Combine(assetLoadTable.BuildBundlePath, assetsLoadSetting.BuildName, "DependLogs.txt"), Path.Combine(encryptAssetPath, "DependLogs.txt"));
+            }
+            
         }
         
         /// <summary>
@@ -284,7 +312,6 @@ namespace BM
         /// </summary>
         private static void SaveLoadLog(AssetLoadTable assetLoadTable, AssetsLoadSetting assetsLoadSetting, Dictionary<string, LoadFile> loadFiles, Dictionary<string, LoadDepend> loadDepends)
         {
-            
             if (!Directory.Exists(Path.Combine(assetLoadTable.BuildBundlePath, assetsLoadSetting.BuildName)))
             {
                 Directory.CreateDirectory(Path.Combine(assetLoadTable.BuildBundlePath, assetsLoadSetting.BuildName));
@@ -320,13 +347,13 @@ namespace BM
         /// <summary>
         /// 保存Bundle的版本号文件
         /// </summary>
-        private static void SaveBundleVersionFile(string bundlePackagePath, AssetBundleManifest manifest, AssetsLoadSetting assetsLoadSetting)
+        private static void SaveBundleVersionFile(string bundlePackagePath, AssetBundleManifest manifest, AssetsLoadSetting assetsLoadSetting, bool encrypt)
         {
             string[] assetBundles = manifest.GetAllAssetBundles();
             using (StreamWriter sw = new StreamWriter(Path.Combine(bundlePackagePath, "VersionLogs.txt")))
             {
                 StringBuilder sb = new StringBuilder();
-                string versionHandler = System.DateTime.Now + "|" + assetsLoadSetting.BuildIndex + "\n";
+                string versionHandler = System.DateTime.Now + "|" + assetsLoadSetting.BuildIndex + "|" + (encrypt).ToString() + "\n";
                 sb.Append(versionHandler);
                 foreach (string assetBundle in assetBundles)
                 {

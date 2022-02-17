@@ -21,6 +21,12 @@ namespace BM
         [Header("是否启用Hash名")]
         [Tooltip("是否使用Hash名替换Bundle名称")] public bool NameByHash;
         
+        [Header("是否加密资源")]
+        [Tooltip("加密启用后会多一步异或操作")] public bool EncryptAssets;
+        
+        [Header("加密密钥")]
+        [Tooltip("进行异或操作的密钥")] public string SecretKey;
+        
         [Header("资源路径")]
         [Tooltip("需要打包的资源所在的路径(不需要包含依赖, 只包括需要主动加载的资源)")]
         public List<string> AssetPath = new List<string>();
