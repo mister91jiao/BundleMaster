@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using ET;
+using UnityEngine.Networking;
 
 namespace BM
 {
@@ -38,22 +39,24 @@ namespace BM
             {
                 BundleNameToSecretKey.Add(bundlePackageName, secretKey.ToCharArray());
             }
-            //判断Bundle信息文件是否存在
-            string fileLogsPath = BundleFileExistPath(bundlePackageName, "FileLogs.txt");
-            if (fileLogsPath == null)
+
+            ETTask fileTcs= ETTask.Create();
+            BundleFileExistPath(bundlePackageName, "FileLogs.txt");
+            string filePath = BundleFileExistPath(bundlePackageName, "FileLogs.txt");
+            using (UnityWebRequest webRequest = UnityWebRequest.Get(filePath))
             {
-                AssetLogHelper.LogError("没有找到 " + bundlePackageName + " Bundle的FileLogs");
-                return;
-            }
-            string dependLogsPath = BundleFileExistPath(bundlePackageName, "DependLogs.txt");
-            if (dependLogsPath == null)
-            {
-                AssetLogHelper.LogError("没有找到 " + bundlePackageName + " Bundle的DependLogs");
-                return;
-            }
-            using (StreamReader sr = new StreamReader(fileLogsPath))
-            {
-                string fileLogs = await sr.ReadToEndAsync();
+                UnityWebRequestAsyncOperation weq = webRequest.SendWebRequest();
+                weq.completed += (o) =>
+                {
+                    fileTcs.SetResult();
+                };
+                await fileTcs;
+                if (webRequest.result != UnityWebRequest.Result.Success)
+                {
+                    AssetLogHelper.LogError("没有找到 " + bundlePackageName + " Bundle的FileLogs");
+                    return;
+                }
+                string fileLogs = webRequest.downloadHandler.text;
                 Regex reg = new Regex(@"\<(.+?)>");
                 MatchCollection matchCollection = reg.Matches(fileLogs);
                 foreach (Match m in matchCollection)
@@ -74,9 +77,22 @@ namespace BM
                     bundleRuntimeInfo.LoadFileDic.Add(loadFile.FilePath, loadFile);
                 }
             }
-            using (StreamReader sr = new StreamReader(dependLogsPath))
+            ETTask dependTcs = ETTask.Create();
+            string dependPath = BundleFileExistPath(bundlePackageName, "DependLogs.txt");
+            using (UnityWebRequest webRequest = UnityWebRequest.Get(dependPath))
             {
-                string dependLogs = await sr.ReadToEndAsync();
+                UnityWebRequestAsyncOperation weq = webRequest.SendWebRequest();
+                weq.completed += (o) =>
+                {
+                    dependTcs.SetResult();
+                };
+                await dependTcs;
+                if (webRequest.result != UnityWebRequest.Result.Success)
+                {
+                    AssetLogHelper.LogError("没有找到 " + bundlePackageName + " Bundle的DependLogs");
+                    return;
+                }
+                string dependLogs = webRequest.downloadHandler.text;
                 Regex reg = new Regex(@"\<(.+?)>");
                 MatchCollection matchCollection = reg.Matches(dependLogs);
                 foreach (Match m in matchCollection)
@@ -95,28 +111,29 @@ namespace BM
         /// <summary>
         /// 加载Shader文件
         /// </summary>
-        private static ETTask LoadShader(string bundlePackageName)
+        private static async ETTask LoadShader(string bundlePackageName)
         {
             ETTask tcs = ETTask.Create();
             string shaderPath = BundleFileExistPath(bundlePackageName, "shader_" + bundlePackageName.ToLower());
-            if (shaderPath != null)
+            byte[] shaderData;
+            if (BundleNameToSecretKey.ContainsKey(bundlePackageName))
             {
-                AssetBundleCreateRequest request;
-                if (BundleNameToSecretKey.ContainsKey(bundlePackageName))
-                {
-                    request = AssetBundle.LoadFromMemoryAsync(VerifyHelper.GetDecryptData(shaderPath, BundleNameToSecretKey[bundlePackageName]));
-                }
-                else
-                {
-                    request = AssetBundle.LoadFromFileAsync(shaderPath);
-                }
-                request.completed += operation => tcs.SetResult();
+                shaderData = await VerifyHelper.GetDecryptDataAsync(shaderPath, BundleNameToSecretKey[bundlePackageName]);
             }
             else
             {
+                shaderData = await VerifyHelper.GetDecryptDataAsync(shaderPath);
+            }
+            if (shaderData == null)
+            {
                 tcs.SetResult();
             }
-            return tcs;
+            else
+            {
+                AssetBundleCreateRequest request = AssetBundle.LoadFromMemoryAsync(shaderData);
+                request.completed += operation => tcs.SetResult();
+            }
+            await tcs;
         }
         
     }

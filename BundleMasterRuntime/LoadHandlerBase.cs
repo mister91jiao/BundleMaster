@@ -30,7 +30,7 @@ namespace BM
         protected async ETTask LoadAsyncLoader(LoadBase loadBase, ETTask baseTcs)
         {
             ETTask tcs = ETTask.Create(true);
-            loadBase.LoadAssetBundleAsync(tcs, BundlePackageName);
+            loadBase.LoadAssetBundleAsync(tcs, BundlePackageName).Coroutine();
             await tcs;
             RefLoadFinishCount--;
             if (RefLoadFinishCount == 0)

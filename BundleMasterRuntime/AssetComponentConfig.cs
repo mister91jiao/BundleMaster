@@ -19,7 +19,7 @@ namespace BM
         public static string HotfixPath = Application.persistentDataPath;
 
         /// <summary>
-        /// 存放本地Bundle的位置
+        /// 存放本地Bundle的位置 Application.streamingAssetsPath;
         /// </summary>
         public static string LocalBundlePath = Application.streamingAssetsPath;
 

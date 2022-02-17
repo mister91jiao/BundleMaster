@@ -3,6 +3,7 @@ using System.IO;
 using System.Collections.Generic;
 using UnityEngine;
 using ET;
+using UnityEngine.Networking;
 
 namespace BM
 {
@@ -45,16 +46,23 @@ namespace BM
                 string localVersionLog;
                 //获取本地的VersionLog
                 string localVersionLogExistPath = BundleFileExistPath(bundlePackageName, "VersionLogs.txt");
-                if (localVersionLogExistPath != null)
+                ETTask logTcs = ETTask.Create();
+                using (UnityWebRequest webRequest = UnityWebRequest.Get(localVersionLogExistPath))
                 {
-                    using (StreamReader sr = new StreamReader(localVersionLogExistPath))
+                    UnityWebRequestAsyncOperation weq = webRequest.SendWebRequest();
+                    weq.completed += (o) =>
                     {
-                        localVersionLog = await sr.ReadToEndAsync();
+                        logTcs.SetResult();
+                    };
+                    await logTcs;
+                    if (webRequest.result != UnityWebRequest.Result.Success)
+                    {
+                        localVersionLog = "INIT|0";
                     }
-                }
-                else
-                {
-                    localVersionLog = "INIT|0";
+                    else
+                    {
+                        localVersionLog = webRequest.downloadHandler.text;
+                    }
                 }
                 Dictionary<string, long> needUpdateBundlesInfo = GetNeedUpdateBundle(bundlePackageName, remoteVersionLog, localVersionLog, allRemoteVersionFiles);
                 updateBundleDataInfo.PackageNeedUpdateBundlesInfos.Add(bundlePackageName, needUpdateBundlesInfo);

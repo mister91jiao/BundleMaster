@@ -75,15 +75,16 @@ namespace BM
                 return;
             }
             string assetBundlePath = AssetComponent.BundleFileExistPath(bundlePackageName, AssetBundleName);
-            
+            byte[] data;
             if (AssetComponent.BundleNameToSecretKey.ContainsKey(bundlePackageName))
             {
-                AssetBundle = AssetBundle.LoadFromMemory(VerifyHelper.GetDecryptData(assetBundlePath, AssetComponent.BundleNameToSecretKey[bundlePackageName]));
+                data = VerifyHelper.GetDecryptData(assetBundlePath, AssetComponent.BundleNameToSecretKey[bundlePackageName]);
             }
             else
             {
-                AssetBundle = AssetBundle.LoadFromFile(assetBundlePath);
+                data = VerifyHelper.GetDecryptData(assetBundlePath);
             }
+            AssetBundle = AssetBundle.LoadFromMemory(data);
             _loadState = LoadState.Finish;
             for (int i = 0; i < _loadFinishTasks.Count; i++)
             {
@@ -92,7 +93,7 @@ namespace BM
             _loadFinishTasks.Clear();
         }
     
-        public void LoadAssetBundleAsync(ETTask tcs, string bundlePackageName)
+        public async ETVoid LoadAssetBundleAsync(ETTask tcs, string bundlePackageName)
         {
             AddRefCount();
             if (_loadState == LoadState.Finish)
@@ -108,14 +109,16 @@ namespace BM
             _loadFinishTasks.Add(tcs);
             _loadState = LoadState.Loading;
             string assetBundlePath = AssetComponent.BundleFileExistPath(bundlePackageName, AssetBundleName);
+            byte[] data;
             if (AssetComponent.BundleNameToSecretKey.ContainsKey(bundlePackageName))
             {
-                _assetBundleCreateRequest = AssetBundle.LoadFromMemoryAsync(VerifyHelper.GetDecryptData(assetBundlePath, AssetComponent.BundleNameToSecretKey[bundlePackageName]));
+                data = await VerifyHelper.GetDecryptDataAsync(assetBundlePath, AssetComponent.BundleNameToSecretKey[bundlePackageName]);
             }
             else
             {
-                _assetBundleCreateRequest = AssetBundle.LoadFromFileAsync(assetBundlePath);
+                data = await VerifyHelper.GetDecryptDataAsync(assetBundlePath);
             }
+            _assetBundleCreateRequest = AssetBundle.LoadFromMemoryAsync(data);
             _assetBundleCreateRequest.completed += operation =>
             {
                 AssetBundle = _assetBundleCreateRequest.assetBundle;

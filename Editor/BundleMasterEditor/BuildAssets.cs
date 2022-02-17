@@ -375,9 +375,10 @@ namespace BM
             }
             else
             {
-                filePath = filePath.Replace('/', '_');
-                filePath = filePath.Replace('.', '_');
+                filePath = filePath.Replace("/", "_");
+                filePath = filePath.Replace(".", "_");
                 filePath = bundlePackageName + "_" + filePath;
+                filePath = filePath.ToLower();
             }
             return filePath;
         }

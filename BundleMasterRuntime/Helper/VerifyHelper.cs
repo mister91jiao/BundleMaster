@@ -2,6 +2,9 @@ using System;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using ET;
+using UnityEngine;
+using UnityEngine.Networking;
 
 namespace BM
 {
@@ -38,11 +41,19 @@ namespace BM
         public static uint GetFileCRC32(string filePath)
         {
             uint fileCRC32;
-            using (FileStream fs = new FileStream(filePath, FileMode.Open))
+            using (UnityWebRequest webRequest = UnityWebRequest.Get(filePath))
             {
-                byte[] data = new byte[fs.Length];
-                fs.Read(data, 0, data.Length);
-                fileCRC32 = VerifyHelper.GetCRC32(data);
+                webRequest.SendWebRequest();
+                while (!webRequest.isDone) { }
+                if (webRequest.result == UnityWebRequest.Result.Success)
+                {
+                    byte[] data = webRequest.downloadHandler.data;
+                    fileCRC32 = VerifyHelper.GetCRC32(data);
+                }
+                else
+                {
+                    fileCRC32 = 0;
+                }
             }
             return fileCRC32;
         }
@@ -67,18 +78,63 @@ namespace BM
         }
         
         /// <summary>
-        /// 获取解密的数据
+        /// 异步获取解密的数据(无密钥的情况下直接获取数据)
         /// </summary>
-        public static byte[] GetDecryptData(string filePath, char[] secretKey)
+        public static async ETTask<byte[]> GetDecryptDataAsync(string filePath, char[] secretKey = null)
         {
             byte[] encryptData;
-            using (FileStream fs = new FileStream(filePath, FileMode.Open))
+            ETTask tcs = ETTask.Create();
+            using (UnityWebRequest webRequest = UnityWebRequest.Get(filePath))
             {
-                encryptData = new byte[fs.Length];
-                fs.Read(encryptData, 0, encryptData.Length);
-                for (int i = 0; i < encryptData.Length; i++)
+                UnityWebRequestAsyncOperation weq = webRequest.SendWebRequest();
+                weq.completed += (o) =>
                 {
-                    encryptData[i] = (byte)(encryptData[i] ^ secretKey[i % secretKey.Length]);
+                    tcs.SetResult();
+                };
+                await tcs;
+                if (webRequest.result == UnityWebRequest.Result.Success)
+                {
+                    encryptData = webRequest.downloadHandler.data;
+                    if (secretKey != null)
+                    {
+                        for (int i = 0; i < encryptData.Length; i++)
+                        {
+                            encryptData[i] = (byte)(encryptData[i] ^ secretKey[i % secretKey.Length]);
+                        }
+                    }
+                }
+                else
+                {
+                    encryptData = null;
+                }
+            }
+            return encryptData;
+        }
+        
+        /// <summary>
+        /// 获取解密的数据(无密钥的情况下直接获取数据)
+        /// </summary>
+        public static byte[] GetDecryptData(string filePath, char[] secretKey = null)
+        {
+            byte[] encryptData;
+            using (UnityWebRequest webRequest = UnityWebRequest.Get(filePath))
+            {
+                webRequest.SendWebRequest();
+                while (!webRequest.isDone) { }
+                if (webRequest.result == UnityWebRequest.Result.Success)
+                {
+                    encryptData = webRequest.downloadHandler.data;
+                    if (secretKey != null)
+                    {
+                        for (int i = 0; i < encryptData.Length; i++)
+                        {
+                            encryptData[i] = (byte)(encryptData[i] ^ secretKey[i % secretKey.Length]);
+                        }
+                    }
+                }
+                else
+                {
+                    encryptData = null;
                 }
             }
             return encryptData;

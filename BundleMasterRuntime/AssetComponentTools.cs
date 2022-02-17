@@ -12,16 +12,24 @@ namespace BM
         /// </summary>
         public static string BundleFileExistPath(string bundlePackageName, string fileName)
         {
-            string path = Path.Combine(AssetComponentConfig.HotfixPath, bundlePackageName, fileName);
-            if (!File.Exists(path))
+            if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Local)
             {
-                path = Path.Combine(AssetComponentConfig.LocalBundlePath, bundlePackageName, fileName);
+                string path = Path.Combine(AssetComponentConfig.LocalBundlePath, bundlePackageName, fileName);
+                return path;
+            }
+            else
+            {
+                string path = Path.Combine(AssetComponentConfig.HotfixPath, bundlePackageName, fileName);
                 if (!File.Exists(path))
                 {
-                    return null;
+                    path = Path.Combine(AssetComponentConfig.LocalBundlePath, bundlePackageName, fileName);
                 }
+                else
+                {
+                    path = "file://" + path;
+                }
+                return path;
             }
-            return path;
         }
 
         /// <summary>
