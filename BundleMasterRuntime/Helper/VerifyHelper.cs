@@ -3,7 +3,6 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using ET;
-using UnityEngine;
 using UnityEngine.Networking;
 
 namespace BM
@@ -45,7 +44,11 @@ namespace BM
             {
                 webRequest.SendWebRequest();
                 while (!webRequest.isDone) { }
+#if UNITY_2020_1_OR_NEWER
                 if (webRequest.result == UnityWebRequest.Result.Success)
+#else
+                if (string.IsNullOrEmpty(webRequest.error))
+#endif
                 {
                     byte[] data = webRequest.downloadHandler.data;
                     fileCRC32 = VerifyHelper.GetCRC32(data);
@@ -92,7 +95,11 @@ namespace BM
                     tcs.SetResult();
                 };
                 await tcs;
+#if UNITY_2020_1_OR_NEWER
                 if (webRequest.result == UnityWebRequest.Result.Success)
+#else
+                if (string.IsNullOrEmpty(webRequest.error))
+#endif
                 {
                     encryptData = webRequest.downloadHandler.data;
                     if (secretKey != null)
@@ -121,7 +128,11 @@ namespace BM
             {
                 webRequest.SendWebRequest();
                 while (!webRequest.isDone) { }
+#if UNITY_2020_1_OR_NEWER
                 if (webRequest.result == UnityWebRequest.Result.Success)
+#else
+                if (string.IsNullOrEmpty(webRequest.error))
+#endif
                 {
                     encryptData = webRequest.downloadHandler.data;
                     if (secretKey != null)

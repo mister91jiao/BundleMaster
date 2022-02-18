@@ -1,7 +1,5 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using System.Collections.Generic;
-using UnityEngine;
 using ET;
 using UnityEngine.Networking;
 
@@ -55,7 +53,11 @@ namespace BM
                         logTcs.SetResult();
                     };
                     await logTcs;
+#if UNITY_2020_1_OR_NEWER
                     if (webRequest.result != UnityWebRequest.Result.Success)
+#else
+                if (!string.IsNullOrEmpty(webRequest.error))
+#endif
                     {
                         localVersionLog = "INIT|0";
                     }

@@ -29,6 +29,7 @@ namespace BM
         public LoadSceneHandler(string scenePath, string bundlePackageName)
         {
             AssetPath = scenePath;
+            UniqueId = HandlerIdHelper.GetUniqueId();
             BundlePackageName = bundlePackageName;
             if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
             {

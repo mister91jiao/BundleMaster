@@ -93,7 +93,7 @@ namespace BM
             _loadFinishTasks.Clear();
         }
     
-        public async ETVoid LoadAssetBundleAsync(ETTask tcs, string bundlePackageName)
+        public async ETTask LoadAssetBundleAsync(ETTask tcs, string bundlePackageName)
         {
             AddRefCount();
             if (_loadState == LoadState.Finish)

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace BM
@@ -23,7 +24,7 @@ namespace BM
         /// <summary>
         /// 添加进预卸载池
         /// </summary>
-        public static void AddPreUnLoadPool(LoadBase loadBase)
+        internal static void AddPreUnLoadPool(LoadBase loadBase)
         {
             PreUnLoadPool.Add(loadBase.AssetBundleName, loadBase);
         }
@@ -31,7 +32,7 @@ namespace BM
         /// <summary>
         /// 从预卸载池里面取出
         /// </summary>
-        public static void SubPreUnLoadPool(LoadBase loadBase)
+        internal static void SubPreUnLoadPool(LoadBase loadBase)
         {
             if (PreUnLoadPool.ContainsKey(loadBase.AssetBundleName))
             {
@@ -91,6 +92,62 @@ namespace BM
                 _timer = 0;
                 AutoAddToTrueUnLoadPool();
             }
+        }
+
+        /// <summary>
+        /// 取消一个分包的初始化
+        /// </summary>
+        public static void UnInitialize(string bundlePackageName)
+        {
+            if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
+            {
+                AssetLogHelper.Log("AssetLoadMode = Develop 无法取消初始化分包");
+                return;
+            }
+            UnInitializePackage(bundlePackageName);
+            ForceUnLoadAll();
+        }
+        
+        /// <summary>
+        /// 取消一个分包的初始化
+        /// </summary>
+        public static void UnInitializeAll()
+        {
+            if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
+            {
+                AssetLogHelper.Log("AssetLoadMode = Develop 无法取消初始化分包");
+                return;
+            }
+            string[] bundlePackageNames = BundleNameToRuntimeInfo.Keys.ToArray();
+            for (int i = 0; i < bundlePackageNames.Length; i++)
+            {
+                UnInitializePackage(bundlePackageNames[i]);
+            }
+            ForceUnLoadAll();
+        }
+
+        private static void UnInitializePackage(string bundlePackageName)
+        {
+            if (!BundleNameToRuntimeInfo.ContainsKey(bundlePackageName))
+            {
+                AssetLogHelper.LogError("找不到要取消初始化的分包: " + bundlePackageName);
+                return;
+            }
+            if (BundleNameToSecretKey.ContainsKey(bundlePackageName))
+            {
+                BundleNameToSecretKey.Remove(bundlePackageName);
+            }
+            BundleRuntimeInfo bundleRuntimeInfo = BundleNameToRuntimeInfo[bundlePackageName];
+            LoadHandlerBase[] loadHandlers = bundleRuntimeInfo.UnLoadHandler.Values.ToArray();
+            for (int i = 0; i < loadHandlers.Length; i++)
+            {
+                loadHandlers[i].UnLoad();
+            }
+            if (bundleRuntimeInfo.Shader != null)
+            {
+                bundleRuntimeInfo.Shader.Unload(true);
+            }
+            BundleNameToRuntimeInfo.Remove(bundlePackageName);
         }
         
     }

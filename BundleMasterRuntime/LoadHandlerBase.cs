@@ -8,6 +8,11 @@ namespace BM
         /// 对应的加载的资源的路径
         /// </summary>
         protected string AssetPath;
+
+        /// <summary>
+        /// 唯一ID
+        /// </summary>
+        public uint UniqueId = 0;
         
         /// <summary>
         /// 所属分包的名称
@@ -54,11 +59,12 @@ namespace BM
                 AssetLogHelper.LogError(AssetPath + "已经卸载完了");
                 return;
             }
+            AssetComponent.BundleNameToRuntimeInfo[BundlePackageName].UnLoadHandler.Remove(UniqueId);
             //减少引用数量
             ClearAsset();
             _unloadFinish = true;
         }
-
+        
         /// <summary>
         /// 子类需要实现清理资源引用的逻辑
         /// </summary>

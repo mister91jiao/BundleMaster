@@ -18,6 +18,7 @@ MonoBehaviour:
   EncryptPathFolder: EncryptAssets
   InitScene:
   - {fileID: 102900000, guid: 9fc0d4010bbf28b4594072e72b8655ab, type: 3}
+  - {fileID: 102900000, guid: 56e8291126294654b89f23a1d708abd7, type: 3}
   AssetsLoadSettings:
   - {fileID: 11400000, guid: 0b8c754664ab2214fbfcd1f1a78cf066, type: 2}
   - {fileID: 11400000, guid: e86646ac61bb70c45b2c990888d4e2ec, type: 2}

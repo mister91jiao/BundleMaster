@@ -29,6 +29,7 @@ namespace BM
                 AssetLogHelper.LogError(bundlePackageName + "分包没有初始化");
                 return null;
             }
+            bundleRuntimeInfo.UnLoadHandler.Add(loadHandler.UniqueId, loadHandler);
             loadHandler.Load();
             loadHandler.Asset = loadHandler.FileAssetBundle.LoadAsset<T>(assetPath);
             return loadHandler;
@@ -58,6 +59,7 @@ namespace BM
                 AssetLogHelper.LogError(bundlePackageName + "分包没有初始化");
                 return null;
             }
+            bundleRuntimeInfo.UnLoadHandler.Add(loadHandler.UniqueId, loadHandler);
             await loadHandler.LoadAsync();
             ETTask tcs = ETTask.Create(true);
             AssetBundleRequest loadAssetAsync = loadHandler.FileAssetBundle.LoadAssetAsync<T>(assetPath);
@@ -79,8 +81,7 @@ namespace BM
             LoadSceneHandler loadSceneHandler = new LoadSceneHandler(scenePath, bundlePackageName);
             if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
             {
-                //Develop模式加载场景待写
-                
+                //Develop模式可以直接加载场景
                 return loadSceneHandler;
             }
             if (!BundleNameToRuntimeInfo.TryGetValue(bundlePackageName, out BundleRuntimeInfo bundleRuntimeInfo))
@@ -88,6 +89,7 @@ namespace BM
                 AssetLogHelper.LogError(bundlePackageName + "分包没有初始化");
                 return null;
             }
+            bundleRuntimeInfo.UnLoadHandler.Add(loadSceneHandler.UniqueId, loadSceneHandler);
             loadSceneHandler.LoadSceneBundle();
             return loadSceneHandler;
         }
@@ -112,6 +114,7 @@ namespace BM
                 AssetLogHelper.LogError(bundlePackageName + "分包没有初始化");
                 return null;
             }
+            bundleRuntimeInfo.UnLoadHandler.Add(loadSceneHandler.UniqueId, loadSceneHandler);
             await loadSceneHandler.LoadSceneBundleAsync();
             return loadSceneHandler;
         }

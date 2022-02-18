@@ -10,7 +10,7 @@ namespace BM
         /// <summary>
         /// 获取Bundle信息文件的路径
         /// </summary>
-        public static string BundleFileExistPath(string bundlePackageName, string fileName)
+        internal static string BundleFileExistPath(string bundlePackageName, string fileName)
         {
             if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Local)
             {
@@ -51,7 +51,7 @@ namespace BM
         /// </summary>
         /// <param name="filePath">文件的全路径</param>
         /// <param name="fileData">文件的内容</param>
-        public static void CreateUpdateLogFile(string filePath, string fileData)
+        internal static void CreateUpdateLogFile(string filePath, string fileData)
         {
             using (StreamWriter sw = new StreamWriter(filePath))
             {

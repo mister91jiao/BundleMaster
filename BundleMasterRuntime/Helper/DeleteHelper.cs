@@ -26,6 +26,7 @@ namespace BM
             }
             catch (Exception e)
             {
+                AssetLogHelper.LogError(e.ToString());
                 throw;
             }
         }

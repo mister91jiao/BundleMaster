@@ -1,5 +1,4 @@
-﻿using System.IO;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using ET;
@@ -12,12 +11,13 @@ namespace BM
         /// <summary>
         /// Bundle初始化的信息
         /// </summary>
-        public static readonly Dictionary<string, BundleRuntimeInfo> BundleNameToRuntimeInfo = new Dictionary<string, BundleRuntimeInfo>();
+        internal static readonly Dictionary<string, BundleRuntimeInfo> BundleNameToRuntimeInfo = new Dictionary<string, BundleRuntimeInfo>();
+        
         /// <summary>
         /// 分包名称和其对应的密钥
         /// </summary>
-        public static readonly Dictionary<string, char[]> BundleNameToSecretKey = new Dictionary<string, char[]>();
-    
+        internal static readonly Dictionary<string, char[]> BundleNameToSecretKey = new Dictionary<string, char[]>();
+
         /// <summary>
         /// 初始化
         /// </summary>
@@ -51,7 +51,11 @@ namespace BM
                     fileTcs.SetResult();
                 };
                 await fileTcs;
+#if UNITY_2020_1_OR_NEWER
                 if (webRequest.result != UnityWebRequest.Result.Success)
+#else
+                if (!string.IsNullOrEmpty(webRequest.error))
+#endif
                 {
                     AssetLogHelper.LogError("没有找到 " + bundlePackageName + " Bundle的FileLogs");
                     return;
@@ -87,7 +91,11 @@ namespace BM
                     dependTcs.SetResult();
                 };
                 await dependTcs;
+#if UNITY_2020_1_OR_NEWER
                 if (webRequest.result != UnityWebRequest.Result.Success)
+#else
+                if (!string.IsNullOrEmpty(webRequest.error))
+#endif
                 {
                     AssetLogHelper.LogError("没有找到 " + bundlePackageName + " Bundle的DependLogs");
                     return;
@@ -131,7 +139,11 @@ namespace BM
             else
             {
                 AssetBundleCreateRequest request = AssetBundle.LoadFromMemoryAsync(shaderData);
-                request.completed += operation => tcs.SetResult();
+                request.completed += operation =>
+                {
+                    BundleNameToRuntimeInfo[bundlePackageName].Shader = request.assetBundle;
+                    tcs.SetResult();
+                };
             }
             await tcs;
         }
