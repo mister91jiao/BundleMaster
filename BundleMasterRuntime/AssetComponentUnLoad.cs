@@ -109,7 +109,7 @@ namespace BM
         }
         
         /// <summary>
-        /// 取消一个分包的初始化
+        /// 取消所有分包的初始化
         /// </summary>
         public static void UnInitializeAll()
         {
