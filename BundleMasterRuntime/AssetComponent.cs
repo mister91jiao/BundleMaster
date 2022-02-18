@@ -124,7 +124,7 @@ namespace BM
     public enum AssetLoadMode
     {
         /// <summary>
-        /// 开发模式
+        /// 开发模式(无需打包，编辑器下AssetDatabase加载)
         /// </summary>
         Develop = 0,
         
