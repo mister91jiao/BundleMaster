@@ -41,7 +41,6 @@ namespace BM
             }
 
             ETTask fileTcs= ETTask.Create();
-            BundleFileExistPath(bundlePackageName, "FileLogs.txt");
             string filePath = BundleFileExistPath(bundlePackageName, "FileLogs.txt");
             using (UnityWebRequest webRequest = UnityWebRequest.Get(filePath))
             {
@@ -57,7 +56,7 @@ namespace BM
                 if (!string.IsNullOrEmpty(webRequest.error))
 #endif
                 {
-                    AssetLogHelper.LogError("没有找到 " + bundlePackageName + " Bundle的FileLogs");
+                    AssetLogHelper.LogError("没有找到 " + bundlePackageName + " Bundle的FileLogs\n" + filePath);
                     return;
                 }
                 string fileLogs = webRequest.downloadHandler.text;
@@ -97,7 +96,7 @@ namespace BM
                 if (!string.IsNullOrEmpty(webRequest.error))
 #endif
                 {
-                    AssetLogHelper.LogError("没有找到 " + bundlePackageName + " Bundle的DependLogs");
+                    AssetLogHelper.LogError("没有找到 " + bundlePackageName + " Bundle的DependLogs\n" + dependPath);
                     return;
                 }
                 string dependLogs = webRequest.downloadHandler.text;

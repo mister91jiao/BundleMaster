@@ -15,6 +15,9 @@ namespace BM
             if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Local)
             {
                 string path = Path.Combine(AssetComponentConfig.LocalBundlePath, bundlePackageName, fileName);
+#if UNITY_IOS
+                path = "file://" + path;
+#endif
                 return path;
             }
             else
@@ -23,6 +26,9 @@ namespace BM
                 if (!File.Exists(path))
                 {
                     path = Path.Combine(AssetComponentConfig.LocalBundlePath, bundlePackageName, fileName);
+#if UNITY_IOS
+                    path = "file://" + path;
+#endif
                 }
                 else
                 {
