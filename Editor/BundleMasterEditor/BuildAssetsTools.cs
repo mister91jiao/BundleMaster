@@ -48,7 +48,7 @@ namespace BM
         /// <summary>
         /// 创建加密的AssetBundle
         /// </summary>
-        public static void CreateEncryptAssets(string bundlePackagePath, string encryptAssetPath, AssetBundleManifest manifest)
+        public static void CreateEncryptAssets(string bundlePackagePath, string encryptAssetPath, AssetBundleManifest manifest, string secretKey)
         {
             string[] assetBundles = manifest.GetAllAssetBundles();
             foreach (string assetBundle in assetBundles)
@@ -60,7 +60,7 @@ namespace BM
                 }
                 using (FileStream fs = new FileStream(Path.Combine(encryptAssetPath, assetBundle), FileMode.OpenOrCreate))
                 {
-                    byte[] encryptBytes = VerifyHelper.CreateEncryptData(bundlePath, "mister91jiao");
+                    byte[] encryptBytes = VerifyHelper.CreateEncryptData(bundlePath, secretKey);
                     fs.Write(encryptBytes, 0, encryptBytes.Length);
                 }
             }
