@@ -82,22 +82,54 @@ namespace BM
         /// <summary>
         /// 异步加载场景的Bundle
         /// </summary>
-        public async ETTask LoadSceneBundleAsync()
+        public async ETTask LoadSceneBundleAsync(ETTask finishTask)
         {
             //计算出所有需要加载的Bundle包的总数
             RefLoadFinishCount = _loadDepends.Count + _loadDependFiles.Count + 1;
-            ETTask tcs = ETTask.Create(true);
-            LoadAsyncLoader(_loadFile, tcs).Coroutine();
+            _loadFile.OpenProgress();
+            LoadAsyncLoader(_loadFile, finishTask).Coroutine();
             for (int i = 0; i < _loadDepends.Count; i++)
             {
-                LoadAsyncLoader(_loadDepends[i], tcs).Coroutine();
+                _loadDepends[i].OpenProgress();
+                LoadAsyncLoader(_loadDepends[i], finishTask).Coroutine();
             }
             for (int i = 0; i < _loadDependFiles.Count; i++)
             {
-                LoadAsyncLoader(_loadDependFiles[i], tcs).Coroutine();
+                _loadDependFiles[i].OpenProgress();
+                LoadAsyncLoader(_loadDependFiles[i], finishTask).Coroutine();
             }
-            await tcs;
+            await finishTask;
             FileAssetBundle = _loadFile.AssetBundle;
+        }
+
+        /// <summary>
+        /// 获取场景AssetBundle加载的进度
+        /// </summary>
+        internal float GetProgress()
+        {
+            if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
+            {
+                //Develop模式无法异步加载
+                return 100;
+            }
+            if (UnloadFinish)
+            {
+                return 0;
+            }
+            float progress = 0;
+            int loadCount = 1;
+            progress += _loadFile.GetProgress();
+            for (int i = 0; i < _loadDepends.Count; i++)
+            {
+                progress += _loadDepends[i].GetProgress();
+                loadCount++;
+            }
+            for (int i = 0; i < _loadDependFiles.Count; i++)
+            {
+                progress += _loadDependFiles[i].GetProgress();
+                loadCount++;
+            }
+            return progress / loadCount;
         }
         
         /// <summary>

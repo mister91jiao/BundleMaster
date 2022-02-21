@@ -31,7 +31,12 @@ namespace BM
         /// </summary>
         private List<ETTask> _loadFinishTasks = new List<ETTask>();
 
-        public void AddRefCount()
+        /// <summary>
+        /// 需要统计进度
+        /// </summary>
+        private WebLoadProgress _loadProgress = null;
+
+        private void AddRefCount()
         {
             _refCount++;
             if (_refCount == 1 && _loadState == LoadState.Finish)
@@ -112,11 +117,11 @@ namespace BM
             byte[] data;
             if (AssetComponent.BundleNameToSecretKey.ContainsKey(bundlePackageName))
             {
-                data = await VerifyHelper.GetDecryptDataAsync(assetBundlePath, AssetComponent.BundleNameToSecretKey[bundlePackageName]);
+                data = await VerifyHelper.GetDecryptDataAsync(assetBundlePath, _loadProgress, AssetComponent.BundleNameToSecretKey[bundlePackageName]);
             }
             else
             {
-                data = await VerifyHelper.GetDecryptDataAsync(assetBundlePath);
+                data = await VerifyHelper.GetDecryptDataAsync(assetBundlePath, _loadProgress);
             }
             _assetBundleCreateRequest = AssetBundle.LoadFromMemoryAsync(data);
             _assetBundleCreateRequest.completed += operation =>
@@ -136,6 +141,39 @@ namespace BM
             };
         }
 
+        /// <summary>
+        /// 打开进度统计
+        /// </summary>
+        internal void OpenProgress()
+        {
+            _loadProgress = new WebLoadProgress();
+        }
+        
+        internal float GetProgress()
+        {
+            if (_loadProgress == null)
+            {
+                AssetLogHelper.LogError("未打开进度统计无法获取进度");
+                return 0;
+            }
+            if (_loadState == LoadState.Finish)
+            {
+                return 1;
+            }
+            if (_loadState == LoadState.NoLoad)
+            {
+                return 0;
+            }
+            if (_assetBundleCreateRequest == null)
+            {
+                return _loadProgress.GetWebProgress() / 2;
+            }
+            else
+            {
+                return (_assetBundleCreateRequest.progress + 1.0f) / 2;
+            }
+        }
+        
     }
 
     /// <summary>

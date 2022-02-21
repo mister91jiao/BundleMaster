@@ -27,7 +27,7 @@ namespace BM
         /// <summary>
         /// 是否卸载标记位
         /// </summary>
-        private bool _unloadFinish = false;
+        protected bool UnloadFinish = false;
         
         /// <summary>
         /// 加载计数器(负责完成所有依赖的Bundle加载完成)
@@ -54,7 +54,7 @@ namespace BM
             {
                 return;
             }
-            if (_unloadFinish)
+            if (UnloadFinish)
             {
                 AssetLogHelper.LogError(AssetPath + "已经卸载完了");
                 return;
@@ -62,7 +62,7 @@ namespace BM
             AssetComponent.BundleNameToRuntimeInfo[BundlePackageName].UnLoadHandler.Remove(UniqueId);
             //减少引用数量
             ClearAsset();
-            _unloadFinish = true;
+            UnloadFinish = true;
         }
         
         /// <summary>

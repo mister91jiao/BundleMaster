@@ -125,7 +125,7 @@ namespace BM
             byte[] shaderData;
             if (BundleNameToSecretKey.ContainsKey(bundlePackageName))
             {
-                shaderData = await VerifyHelper.GetDecryptDataAsync(shaderPath, BundleNameToSecretKey[bundlePackageName]);
+                shaderData = await VerifyHelper.GetDecryptDataAsync(shaderPath, null, BundleNameToSecretKey[bundlePackageName]);
             }
             else
             {

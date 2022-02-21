@@ -115,8 +115,33 @@ namespace BM
                 return null;
             }
             bundleRuntimeInfo.UnLoadHandler.Add(loadSceneHandler.UniqueId, loadSceneHandler);
-            await loadSceneHandler.LoadSceneBundleAsync();
+            ETTask tcs = ETTask.Create();
+            await loadSceneHandler.LoadSceneBundleAsync(tcs);
             return loadSceneHandler;
+        }
+
+        public static ETTask LoadSceneAsync(out LoadSceneHandler loadSceneHandler, string scenePath, string bundlePackageName = null)
+        {
+            ETTask tcs = ETTask.Create();
+            if (bundlePackageName == null)
+            {
+                bundlePackageName = AssetComponentConfig.DefaultBundlePackageName;
+            }
+            loadSceneHandler = new LoadSceneHandler(scenePath, bundlePackageName);
+            if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
+            {
+                //Develop模式不需要加载场景
+                tcs.SetResult();
+                return tcs;
+            }
+            if (!BundleNameToRuntimeInfo.TryGetValue(bundlePackageName, out BundleRuntimeInfo bundleRuntimeInfo))
+            {
+                AssetLogHelper.LogError(bundlePackageName + "分包没有初始化");
+                return null;
+            }
+            bundleRuntimeInfo.UnLoadHandler.Add(loadSceneHandler.UniqueId, loadSceneHandler);
+            loadSceneHandler.LoadSceneBundleAsync(tcs).Coroutine();
+            return tcs;
         }
         
     }

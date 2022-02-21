@@ -83,13 +83,17 @@ namespace BM
         /// <summary>
         /// 异步获取解密的数据(无密钥的情况下直接获取数据)
         /// </summary>
-        public static async ETTask<byte[]> GetDecryptDataAsync(string filePath, char[] secretKey = null)
+        public static async ETTask<byte[]> GetDecryptDataAsync(string filePath, WebLoadProgress loadProgress = null, char[] secretKey = null)
         {
             byte[] encryptData;
             ETTask tcs = ETTask.Create();
             using (UnityWebRequest webRequest = UnityWebRequest.Get(filePath))
             {
                 UnityWebRequestAsyncOperation weq = webRequest.SendWebRequest();
+                if (loadProgress != null)
+                {
+                    loadProgress.WeqOperation = weq;
+                }
                 weq.completed += (o) =>
                 {
                     tcs.SetResult();
