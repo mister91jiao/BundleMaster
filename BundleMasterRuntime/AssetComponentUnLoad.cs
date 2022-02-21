@@ -133,10 +133,6 @@ namespace BM
                 AssetLogHelper.LogError("找不到要取消初始化的分包: " + bundlePackageName);
                 return;
             }
-            if (BundleNameToSecretKey.ContainsKey(bundlePackageName))
-            {
-                BundleNameToSecretKey.Remove(bundlePackageName);
-            }
             BundleRuntimeInfo bundleRuntimeInfo = BundleNameToRuntimeInfo[bundlePackageName];
             LoadHandlerBase[] loadHandlers = bundleRuntimeInfo.UnLoadHandler.Values.ToArray();
             for (int i = 0; i < loadHandlers.Length; i++)

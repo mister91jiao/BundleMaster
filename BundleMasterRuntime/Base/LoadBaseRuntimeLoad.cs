@@ -81,9 +81,9 @@ namespace BM
             }
             string assetBundlePath = AssetComponent.BundleFileExistPath(bundlePackageName, AssetBundleName);
             byte[] data;
-            if (AssetComponent.BundleNameToSecretKey.ContainsKey(bundlePackageName))
+            if (AssetComponent.BundleNameToRuntimeInfo[bundlePackageName].Encrypt)
             {
-                data = VerifyHelper.GetDecryptData(assetBundlePath, AssetComponent.BundleNameToSecretKey[bundlePackageName]);
+                data = VerifyHelper.GetDecryptData(assetBundlePath, AssetComponent.BundleNameToRuntimeInfo[bundlePackageName].SecretKey);
             }
             else
             {
@@ -115,9 +115,9 @@ namespace BM
             _loadState = LoadState.Loading;
             string assetBundlePath = AssetComponent.BundleFileExistPath(bundlePackageName, AssetBundleName);
             byte[] data;
-            if (AssetComponent.BundleNameToSecretKey.ContainsKey(bundlePackageName))
+            if (AssetComponent.BundleNameToRuntimeInfo[bundlePackageName].Encrypt)
             {
-                data = await VerifyHelper.GetDecryptDataAsync(assetBundlePath, _loadProgress, AssetComponent.BundleNameToSecretKey[bundlePackageName]);
+                data = await VerifyHelper.GetDecryptDataAsync(assetBundlePath, _loadProgress, AssetComponent.BundleNameToRuntimeInfo[bundlePackageName].SecretKey);
             }
             else
             {

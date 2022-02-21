@@ -12,11 +12,6 @@ namespace BM
         /// Bundle初始化的信息
         /// </summary>
         internal static readonly Dictionary<string, BundleRuntimeInfo> BundleNameToRuntimeInfo = new Dictionary<string, BundleRuntimeInfo>();
-        
-        /// <summary>
-        /// 分包名称和其对应的密钥
-        /// </summary>
-        internal static readonly Dictionary<string, char[]> BundleNameToSecretKey = new Dictionary<string, char[]>();
 
         /// <summary>
         /// 初始化
@@ -33,12 +28,8 @@ namespace BM
                 AssetLogHelper.LogError(bundlePackageName + " 重复初始化");
                 return;
             }
-            BundleRuntimeInfo bundleRuntimeInfo = new BundleRuntimeInfo();
+            BundleRuntimeInfo bundleRuntimeInfo = new BundleRuntimeInfo(bundlePackageName, secretKey);
             BundleNameToRuntimeInfo.Add(bundlePackageName, bundleRuntimeInfo);
-            if (secretKey != null)
-            {
-                BundleNameToSecretKey.Add(bundlePackageName, secretKey.ToCharArray());
-            }
 
             ETTask fileTcs= ETTask.Create();
             string filePath = BundleFileExistPath(bundlePackageName, "FileLogs.txt");
@@ -123,9 +114,9 @@ namespace BM
             ETTask tcs = ETTask.Create();
             string shaderPath = BundleFileExistPath(bundlePackageName, "shader_" + bundlePackageName.ToLower());
             byte[] shaderData;
-            if (BundleNameToSecretKey.ContainsKey(bundlePackageName))
+            if (BundleNameToRuntimeInfo[bundlePackageName].Encrypt)
             {
-                shaderData = await VerifyHelper.GetDecryptDataAsync(shaderPath, null, BundleNameToSecretKey[bundlePackageName]);
+                shaderData = await VerifyHelper.GetDecryptDataAsync(shaderPath, null, BundleNameToRuntimeInfo[bundlePackageName].SecretKey);
             }
             else
             {

@@ -143,6 +143,22 @@ namespace BM
             loadSceneHandler.LoadSceneBundleAsync(tcs).Coroutine();
             return tcs;
         }
+
+        /// <summary>
+        /// 获取一个已经初始化完成的分包的信息
+        /// </summary>
+        public static BundleRuntimeInfo GetBundleRuntimeInfo(string bundlePackageName)
+        {
+            if (BundleNameToRuntimeInfo.TryGetValue(bundlePackageName, out BundleRuntimeInfo bundleRuntimeInfo))
+            {
+                return bundleRuntimeInfo;
+            }
+            else
+            {
+                AssetLogHelper.LogError("初始化的分包里没有这个分包: " + bundlePackageName);
+                return null;
+            }
+        }
         
     }
 
