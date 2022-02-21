@@ -1,6 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using UnityEditor;
+using UnityEngine;
+using Directory = UnityEngine.Windows.Directory;
 
 namespace BM
 {
@@ -43,6 +46,27 @@ namespace BM
         }
         
         /// <summary>
+        /// 创建加密的AssetBundle
+        /// </summary>
+        public static void CreateEncryptAssets(string bundlePackagePath, string encryptAssetPath, AssetBundleManifest manifest, string secretKey)
+        {
+            string[] assetBundles = manifest.GetAllAssetBundles();
+            foreach (string assetBundle in assetBundles)
+            {
+                string bundlePath = Path.Combine(bundlePackagePath, assetBundle);
+                if (!Directory.Exists(encryptAssetPath))
+                {
+                    Directory.CreateDirectory(encryptAssetPath);
+                }
+                using (FileStream fs = new FileStream(Path.Combine(encryptAssetPath, assetBundle), FileMode.OpenOrCreate))
+                {
+                    byte[] encryptBytes = VerifyHelper.CreateEncryptData(bundlePath, secretKey);
+                    fs.Write(encryptBytes, 0, encryptBytes.Length);
+                }
+            }
+        }
+        
+        /// <summary>
         /// 需要忽略加载的格式
         /// </summary>
         public static bool CantLoadType(string fileFullName)
@@ -78,6 +102,53 @@ namespace BM
                     return true;
             }
             return false;
+        }
+
+        /// <summary>
+        /// 是否生成路径字段代码脚本
+        /// </summary>
+        public static void GeneratePathCode(HashSet<string> allAssetPaths, string scriptFilePaths)
+        {
+            using (StreamWriter sw = new StreamWriter(Path.Combine(Application.dataPath, scriptFilePaths, "BPath.cs")))
+            {
+                StringBuilder sb = new StringBuilder();
+                sb.Append("// ReSharper disable All\n");
+                sb.Append("namespace BM\n");
+                sb.Append("{\n");
+                sb.Append("\tpublic class BPath\n");
+                sb.Append("\t{\n");
+                foreach (string assetPath in allAssetPaths)
+                {
+                    string name = assetPath.Replace("/", "_");
+                    name = name.Replace(".", "__");
+                    sb.Append("\t\tpublic const string " + name + " = \"" + assetPath + "\";\n");
+                }
+                sb.Append("\t}\n");
+                sb.Append("}");
+                sw.WriteLine(sb.ToString());
+            }
+        }
+        
+        /// <summary>
+        /// 保存Bundle的版本号文件
+        /// </summary>
+        private static void SaveBundleVersionFile(string bundlePackagePath, AssetBundleManifest manifest, AssetsLoadSetting assetsLoadSetting, bool encrypt)
+        {
+            string[] assetBundles = manifest.GetAllAssetBundles();
+            using (StreamWriter sw = new StreamWriter(Path.Combine(bundlePackagePath, "VersionLogs.txt")))
+            {
+                StringBuilder sb = new StringBuilder();
+                string versionHandler = System.DateTime.Now + "|" + assetsLoadSetting.BuildIndex + "|" + (encrypt).ToString() + "\n";
+                sb.Append(versionHandler);
+                foreach (string assetBundle in assetBundles)
+                {
+                    string bundlePath = Path.Combine(bundlePackagePath, assetBundle);
+                    uint crc32 = VerifyHelper.GetFileCRC32(bundlePath);
+                    string info = assetBundle + "|" + VerifyHelper.GetFileLength(bundlePath) + "|" + crc32 + "\n";
+                    sb.Append(info);
+                }
+                sw.WriteLine(sb.ToString());
+            }
         }
         
     }

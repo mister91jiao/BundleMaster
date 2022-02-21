@@ -2,6 +2,8 @@ using System;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using ET;
+using UnityEngine.Networking;
 
 namespace BM
 {
@@ -38,13 +40,119 @@ namespace BM
         public static uint GetFileCRC32(string filePath)
         {
             uint fileCRC32;
-            using (FileStream fs = new FileStream(filePath, FileMode.Open))
+            using (UnityWebRequest webRequest = UnityWebRequest.Get(filePath))
             {
-                byte[] data = new byte[fs.Length];
-                fs.Read(data, 0, data.Length);
-                fileCRC32 = VerifyHelper.GetCRC32(data);
+                webRequest.SendWebRequest();
+                while (!webRequest.isDone) { }
+#if UNITY_2020_1_OR_NEWER
+                if (webRequest.result == UnityWebRequest.Result.Success)
+#else
+                if (string.IsNullOrEmpty(webRequest.error))
+#endif
+                {
+                    byte[] data = webRequest.downloadHandler.data;
+                    fileCRC32 = VerifyHelper.GetCRC32(data);
+                }
+                else
+                {
+                    fileCRC32 = 0;
+                }
             }
             return fileCRC32;
+        }
+        
+        /// <summary>
+        /// 创建加密过的数据
+        /// </summary>
+        public static byte[] CreateEncryptData(string filePath, string secretKey)
+        {
+            byte[] encryptData;
+            char[] key = secretKey.ToCharArray();
+            using (FileStream fs = new FileStream(filePath, FileMode.Open))
+            {
+                encryptData = new byte[fs.Length];
+                fs.Read(encryptData, 0, encryptData.Length);
+                for (int i = 0; i < encryptData.Length; i++)
+                {
+                    encryptData[i] = (byte)(encryptData[i] ^ key[i % key.Length]);
+                }
+            }
+            return encryptData;
+        }
+        
+        /// <summary>
+        /// 异步获取解密的数据(无密钥的情况下直接获取数据)
+        /// </summary>
+        public static async ETTask<byte[]> GetDecryptDataAsync(string filePath, WebLoadProgress loadProgress = null, char[] secretKey = null)
+        {
+            byte[] encryptData;
+            ETTask tcs = ETTask.Create();
+            using (UnityWebRequest webRequest = UnityWebRequest.Get(filePath))
+            {
+                UnityWebRequestAsyncOperation weq = webRequest.SendWebRequest();
+                if (loadProgress != null)
+                {
+                    loadProgress.WeqOperation = weq;
+                }
+                weq.completed += (o) =>
+                {
+                    tcs.SetResult();
+                };
+                await tcs;
+#if UNITY_2020_1_OR_NEWER
+                if (webRequest.result == UnityWebRequest.Result.Success)
+#else
+                if (string.IsNullOrEmpty(webRequest.error))
+#endif
+                {
+                    encryptData = webRequest.downloadHandler.data;
+                    if (secretKey != null)
+                    {
+                        for (int i = 0; i < encryptData.Length; i++)
+                        {
+                            encryptData[i] = (byte)(encryptData[i] ^ secretKey[i % secretKey.Length]);
+                        }
+                    }
+                }
+                else
+                {
+                    encryptData = null;
+                }
+            }
+            return encryptData;
+        }
+        
+        /// <summary>
+        /// 获取解密的数据(无密钥的情况下直接获取数据)
+        /// </summary>
+        public static byte[] GetDecryptData(string filePath, char[] secretKey = null)
+        {
+            byte[] encryptData;
+            using (UnityWebRequest webRequest = UnityWebRequest.Get(filePath))
+            {
+                webRequest.SendWebRequest();
+                while (!webRequest.isDone) { }
+#if UNITY_2020_1_OR_NEWER
+                if (webRequest.result == UnityWebRequest.Result.Success)
+#else
+                if (string.IsNullOrEmpty(webRequest.error))
+#endif
+                {
+                    encryptData = webRequest.downloadHandler.data;
+                    if (secretKey != null)
+                    {
+                        for (int i = 0; i < encryptData.Length; i++)
+                        {
+                            encryptData[i] = (byte)(encryptData[i] ^ secretKey[i % secretKey.Length]);
+                        }
+                    }
+                }
+                else
+                {
+                    encryptData = null;
+                }
+            }
+            return encryptData;
         }
         
         /// <summary>

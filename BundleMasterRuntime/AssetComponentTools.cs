@@ -10,18 +10,32 @@ namespace BM
         /// <summary>
         /// 获取Bundle信息文件的路径
         /// </summary>
-        public static string BundleFileExistPath(string bundlePackageName, string fileName)
+        internal static string BundleFileExistPath(string bundlePackageName, string fileName)
         {
-            string path = Path.Combine(AssetComponentConfig.HotfixPath, bundlePackageName, fileName);
-            if (!File.Exists(path))
+            if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Local)
             {
-                path = Path.Combine(AssetComponentConfig.LocalBundlePath, bundlePackageName, fileName);
+                string path = Path.Combine(AssetComponentConfig.LocalBundlePath, bundlePackageName, fileName);
+#if UNITY_IOS
+                path = "file://" + path;
+#endif
+                return path;
+            }
+            else
+            {
+                string path = Path.Combine(AssetComponentConfig.HotfixPath, bundlePackageName, fileName);
                 if (!File.Exists(path))
                 {
-                    return null;
+                    path = Path.Combine(AssetComponentConfig.LocalBundlePath, bundlePackageName, fileName);
+#if UNITY_IOS
+                    path = "file://" + path;
+#endif
                 }
+                else
+                {
+                    path = "file://" + path;
+                }
+                return path;
             }
-            return path;
         }
 
         /// <summary>
@@ -43,7 +57,7 @@ namespace BM
         /// </summary>
         /// <param name="filePath">文件的全路径</param>
         /// <param name="fileData">文件的内容</param>
-        public static void CreateUpdateLogFile(string filePath, string fileData)
+        internal static void CreateUpdateLogFile(string filePath, string fileData)
         {
             using (StreamWriter sw = new StreamWriter(filePath))
             {

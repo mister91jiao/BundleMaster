@@ -34,6 +34,7 @@ namespace BM
         public LoadHandler(string assetPath, string bundlePackageName)
         {
             AssetPath = assetPath;
+            UniqueId = HandlerIdHelper.GetUniqueId();
             BundlePackageName = bundlePackageName;
             if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
             {

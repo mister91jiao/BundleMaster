@@ -31,7 +31,12 @@ namespace BM
         /// </summary>
         private List<ETTask> _loadFinishTasks = new List<ETTask>();
 
-        public void AddRefCount()
+        /// <summary>
+        /// 需要统计进度
+        /// </summary>
+        private WebLoadProgress _loadProgress = null;
+
+        private void AddRefCount()
         {
             _refCount++;
             if (_refCount == 1 && _loadState == LoadState.Finish)
@@ -75,7 +80,16 @@ namespace BM
                 return;
             }
             string assetBundlePath = AssetComponent.BundleFileExistPath(bundlePackageName, AssetBundleName);
-            AssetBundle = AssetBundle.LoadFromFile(assetBundlePath);
+            byte[] data;
+            if (AssetComponent.BundleNameToRuntimeInfo[bundlePackageName].Encrypt)
+            {
+                data = VerifyHelper.GetDecryptData(assetBundlePath, AssetComponent.BundleNameToRuntimeInfo[bundlePackageName].SecretKey);
+            }
+            else
+            {
+                data = VerifyHelper.GetDecryptData(assetBundlePath);
+            }
+            AssetBundle = AssetBundle.LoadFromMemory(data);
             _loadState = LoadState.Finish;
             for (int i = 0; i < _loadFinishTasks.Count; i++)
             {
@@ -84,7 +98,7 @@ namespace BM
             _loadFinishTasks.Clear();
         }
     
-        public void LoadAssetBundleAsync(ETTask tcs, string bundlePackageName)
+        public async ETTask LoadAssetBundleAsync(ETTask tcs, string bundlePackageName)
         {
             AddRefCount();
             if (_loadState == LoadState.Finish)
@@ -100,7 +114,16 @@ namespace BM
             _loadFinishTasks.Add(tcs);
             _loadState = LoadState.Loading;
             string assetBundlePath = AssetComponent.BundleFileExistPath(bundlePackageName, AssetBundleName);
-            _assetBundleCreateRequest = AssetBundle.LoadFromFileAsync(assetBundlePath);
+            byte[] data;
+            if (AssetComponent.BundleNameToRuntimeInfo[bundlePackageName].Encrypt)
+            {
+                data = await VerifyHelper.GetDecryptDataAsync(assetBundlePath, _loadProgress, AssetComponent.BundleNameToRuntimeInfo[bundlePackageName].SecretKey);
+            }
+            else
+            {
+                data = await VerifyHelper.GetDecryptDataAsync(assetBundlePath, _loadProgress);
+            }
+            _assetBundleCreateRequest = AssetBundle.LoadFromMemoryAsync(data);
             _assetBundleCreateRequest.completed += operation =>
             {
                 AssetBundle = _assetBundleCreateRequest.assetBundle;
@@ -118,6 +141,39 @@ namespace BM
             };
         }
 
+        /// <summary>
+        /// 打开进度统计
+        /// </summary>
+        internal void OpenProgress()
+        {
+            _loadProgress = new WebLoadProgress();
+        }
+        
+        internal float GetProgress()
+        {
+            if (_loadProgress == null)
+            {
+                AssetLogHelper.LogError("未打开进度统计无法获取进度");
+                return 0;
+            }
+            if (_loadState == LoadState.Finish)
+            {
+                return 1;
+            }
+            if (_loadState == LoadState.NoLoad)
+            {
+                return 0;
+            }
+            if (_assetBundleCreateRequest == null)
+            {
+                return _loadProgress.GetWebProgress() / 2;
+            }
+            else
+            {
+                return (_assetBundleCreateRequest.progress + 1.0f) / 2;
+            }
+        }
+        
     }
 
     /// <summary>

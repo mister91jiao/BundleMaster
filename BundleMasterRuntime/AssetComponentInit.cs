@@ -1,8 +1,8 @@
-﻿using System.IO;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using ET;
+using UnityEngine.Networking;
 
 namespace BM
 {
@@ -11,12 +11,12 @@ namespace BM
         /// <summary>
         /// Bundle初始化的信息
         /// </summary>
-        public static readonly Dictionary<string, BundleRuntimeInfo> BundleNameToRuntimeInfo = new Dictionary<string, BundleRuntimeInfo>();
-    
+        internal static readonly Dictionary<string, BundleRuntimeInfo> BundleNameToRuntimeInfo = new Dictionary<string, BundleRuntimeInfo>();
+
         /// <summary>
         /// 初始化
         /// </summary>
-        public static async ETTask Initialize(string bundlePackageName)
+        public static async ETTask Initialize(string bundlePackageName, string secretKey = null)
         {
             if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
             {
@@ -28,25 +28,29 @@ namespace BM
                 AssetLogHelper.LogError(bundlePackageName + " 重复初始化");
                 return;
             }
-            BundleRuntimeInfo bundleRuntimeInfo = new BundleRuntimeInfo();
+            BundleRuntimeInfo bundleRuntimeInfo = new BundleRuntimeInfo(bundlePackageName, secretKey);
             BundleNameToRuntimeInfo.Add(bundlePackageName, bundleRuntimeInfo);
-            
-            //判断Bundle信息文件是否存在
-            string fileLogsPath = BundleFileExistPath(bundlePackageName, "FileLogs.txt");
-            if (fileLogsPath == null)
+
+            ETTask fileTcs= ETTask.Create();
+            string filePath = BundleFileExistPath(bundlePackageName, "FileLogs.txt");
+            using (UnityWebRequest webRequest = UnityWebRequest.Get(filePath))
             {
-                AssetLogHelper.LogError("没有找到 " + bundlePackageName + " Bundle的FileLogs");
-                return;
-            }
-            string dependLogsPath = BundleFileExistPath(bundlePackageName, "DependLogs.txt");
-            if (dependLogsPath == null)
-            {
-                AssetLogHelper.LogError("没有找到 " + bundlePackageName + " Bundle的DependLogs");
-                return;
-            }
-            using (StreamReader sr = new StreamReader(fileLogsPath))
-            {
-                string fileLogs = await sr.ReadToEndAsync();
+                UnityWebRequestAsyncOperation weq = webRequest.SendWebRequest();
+                weq.completed += (o) =>
+                {
+                    fileTcs.SetResult();
+                };
+                await fileTcs;
+#if UNITY_2020_1_OR_NEWER
+                if (webRequest.result != UnityWebRequest.Result.Success)
+#else
+                if (!string.IsNullOrEmpty(webRequest.error))
+#endif
+                {
+                    AssetLogHelper.LogError("没有找到 " + bundlePackageName + " Bundle的FileLogs\n" + filePath);
+                    return;
+                }
+                string fileLogs = webRequest.downloadHandler.text;
                 Regex reg = new Regex(@"\<(.+?)>");
                 MatchCollection matchCollection = reg.Matches(fileLogs);
                 foreach (Match m in matchCollection)
@@ -67,9 +71,26 @@ namespace BM
                     bundleRuntimeInfo.LoadFileDic.Add(loadFile.FilePath, loadFile);
                 }
             }
-            using (StreamReader sr = new StreamReader(dependLogsPath))
+            ETTask dependTcs = ETTask.Create();
+            string dependPath = BundleFileExistPath(bundlePackageName, "DependLogs.txt");
+            using (UnityWebRequest webRequest = UnityWebRequest.Get(dependPath))
             {
-                string dependLogs = await sr.ReadToEndAsync();
+                UnityWebRequestAsyncOperation weq = webRequest.SendWebRequest();
+                weq.completed += (o) =>
+                {
+                    dependTcs.SetResult();
+                };
+                await dependTcs;
+#if UNITY_2020_1_OR_NEWER
+                if (webRequest.result != UnityWebRequest.Result.Success)
+#else
+                if (!string.IsNullOrEmpty(webRequest.error))
+#endif
+                {
+                    AssetLogHelper.LogError("没有找到 " + bundlePackageName + " Bundle的DependLogs\n" + dependPath);
+                    return;
+                }
+                string dependLogs = webRequest.downloadHandler.text;
                 Regex reg = new Regex(@"\<(.+?)>");
                 MatchCollection matchCollection = reg.Matches(dependLogs);
                 foreach (Match m in matchCollection)
@@ -88,20 +109,33 @@ namespace BM
         /// <summary>
         /// 加载Shader文件
         /// </summary>
-        private static ETTask LoadShader(string bundlePackageName)
+        private static async ETTask LoadShader(string bundlePackageName)
         {
             ETTask tcs = ETTask.Create();
             string shaderPath = BundleFileExistPath(bundlePackageName, "shader_" + bundlePackageName.ToLower());
-            if (shaderPath != null)
+            byte[] shaderData;
+            if (BundleNameToRuntimeInfo[bundlePackageName].Encrypt)
             {
-                AssetBundleCreateRequest request = AssetBundle.LoadFromFileAsync(shaderPath);
-                request.completed += operation => tcs.SetResult();
+                shaderData = await VerifyHelper.GetDecryptDataAsync(shaderPath, null, BundleNameToRuntimeInfo[bundlePackageName].SecretKey);
             }
             else
             {
+                shaderData = await VerifyHelper.GetDecryptDataAsync(shaderPath);
+            }
+            if (shaderData == null)
+            {
                 tcs.SetResult();
             }
-            return tcs;
+            else
+            {
+                AssetBundleCreateRequest request = AssetBundle.LoadFromMemoryAsync(shaderData);
+                request.completed += operation =>
+                {
+                    BundleNameToRuntimeInfo[bundlePackageName].Shader = request.assetBundle;
+                    tcs.SetResult();
+                };
+            }
+            await tcs;
         }
         
     }

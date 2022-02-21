@@ -1,8 +1,7 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using System.Collections.Generic;
-using UnityEngine;
 using ET;
+using UnityEngine.Networking;
 
 namespace BM
 {
@@ -20,9 +19,11 @@ namespace BM
                 updateBundleDataInfo.NeedUpdate = false;
                 if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Local)
                 {
-#if UNITY_EDITOR
                     AssetComponentConfig.HotfixPath = AssetComponentConfig.LocalBundlePath;
-#else
+                }
+                else
+                {
+#if !UNITY_EDITOR
                     AssetLogHelper.LogError("AssetLoadMode = AssetLoadMode.Develop 只能在编辑器下运行");
 #endif
                 }
@@ -43,16 +44,27 @@ namespace BM
                 string localVersionLog;
                 //获取本地的VersionLog
                 string localVersionLogExistPath = BundleFileExistPath(bundlePackageName, "VersionLogs.txt");
-                if (localVersionLogExistPath != null)
+                ETTask logTcs = ETTask.Create();
+                using (UnityWebRequest webRequest = UnityWebRequest.Get(localVersionLogExistPath))
                 {
-                    using (StreamReader sr = new StreamReader(localVersionLogExistPath))
+                    UnityWebRequestAsyncOperation weq = webRequest.SendWebRequest();
+                    weq.completed += (o) =>
                     {
-                        localVersionLog = await sr.ReadToEndAsync();
+                        logTcs.SetResult();
+                    };
+                    await logTcs;
+#if UNITY_2020_1_OR_NEWER
+                    if (webRequest.result != UnityWebRequest.Result.Success)
+#else
+                if (!string.IsNullOrEmpty(webRequest.error))
+#endif
+                    {
+                        localVersionLog = "INIT|0";
                     }
-                }
-                else
-                {
-                    localVersionLog = "INIT|0";
+                    else
+                    {
+                        localVersionLog = webRequest.downloadHandler.text;
+                    }
                 }
                 Dictionary<string, long> needUpdateBundlesInfo = GetNeedUpdateBundle(bundlePackageName, remoteVersionLog, localVersionLog, allRemoteVersionFiles);
                 updateBundleDataInfo.PackageNeedUpdateBundlesInfos.Add(bundlePackageName, needUpdateBundlesInfo);

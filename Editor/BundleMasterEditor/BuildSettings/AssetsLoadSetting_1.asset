@@ -13,9 +13,11 @@ MonoBehaviour:
   m_Name: AssetsLoadSetting_1
   m_EditorClassIdentifier: 
   BuildName: AllBundle
-  BuildIndex: 0
+  BuildIndex: 1
   BundleVariant: bundle
   NameByHash: 0
+  EncryptAssets: 0
+  SecretKey: mister91jiao
   AssetPath:
   - Assets/Bundles
   Scene:
