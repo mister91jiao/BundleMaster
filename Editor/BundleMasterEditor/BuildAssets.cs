@@ -49,13 +49,20 @@ namespace BM
                 Directory.CreateDirectory(encryptAssetFolderPath);
             }
             DeleteHelper.DeleteDir(encryptAssetFolderPath);
+            //记录所有加载路径
+            HashSet<string> allAssetLoadPath = new HashSet<string>();
             //构建所有分包
             foreach (AssetsLoadSetting assetsLoadSetting in assetsLoadSettings)
             {
                 //获取单个Bundle的配置文件
-                Build(assetLoadTable, assetsLoadSetting);
+                Build(assetLoadTable, assetsLoadSetting, allAssetLoadPath);
             }
-            
+            //生成路径字段代码脚本
+            if (assetLoadTable.GeneratePathCode)
+            {
+                BuildAssetsTools.GeneratePathCode(allAssetLoadPath, assetLoadTable.GenerateCodeScriptPath);
+                AssetDatabase.Refresh();
+            }
             //构建完成后索引自动+1 需要自己取消注释
             // foreach (AssetsLoadSetting assetsLoadSetting in assetLoadTable.AssetsLoadSettings)
             // {
@@ -63,7 +70,6 @@ namespace BM
             //     EditorUtility.SetDirty(assetsLoadSetting);
             // }
             // AssetDatabase.SaveAssets();
-            
             //打包结束
             AssetLogHelper.Log("打包结束\n" + assetLoadTable.BuildBundlePath);
         }
@@ -115,7 +121,7 @@ namespace BM
             AssetLogHelper.Log("已将资源复制到StreamingAssets");
         }
         
-        private static void Build(AssetLoadTable assetLoadTable, AssetsLoadSetting assetsLoadSetting)
+        private static void Build(AssetLoadTable assetLoadTable, AssetsLoadSetting assetsLoadSetting, HashSet<string> assetLoadPath)
         {
             Dictionary<string, LoadFile> loadFileDic = new Dictionary<string, LoadFile>();
             Dictionary<string, LoadDepend> loadDependDic = new Dictionary<string, LoadDepend>();
@@ -289,7 +295,14 @@ namespace BM
                 File.Copy(Path.Combine(assetLoadTable.BuildBundlePath, assetsLoadSetting.BuildName, "FileLogs.txt"), Path.Combine(encryptAssetPath, "FileLogs.txt"));
                 File.Copy(Path.Combine(assetLoadTable.BuildBundlePath, assetsLoadSetting.BuildName, "DependLogs.txt"), Path.Combine(encryptAssetPath, "DependLogs.txt"));
             }
-            
+            //存储记录所有资源的加载路径
+            foreach (string assetPath in loadFileDic.Keys)
+            {
+                if (!assetLoadPath.Contains(assetPath))
+                {
+                    assetLoadPath.Add(assetPath);
+                }
+            }
         }
         
         /// <summary>

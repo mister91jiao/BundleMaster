@@ -20,6 +20,9 @@ namespace BM
         
         [Header("是否启用Hash名")]
         [Tooltip("是否使用Hash名替换Bundle名称")] public bool NameByHash;
+
+        [Header("构建选项")]
+        public BuildAssetBundleOptions BuildAssetBundleOptions = BuildAssetBundleOptions.UncompressedAssetBundle;
         
         [Header("是否加密资源")]
         [Tooltip("加密启用后会多一步异或操作")] public bool EncryptAssets;

@@ -30,6 +30,14 @@ namespace BM
         [Tooltip("最后不打Bundle直接打进包体里的场景(Scene In Build 里填的场景)")] 
         public List<SceneAsset> InitScene = new List<SceneAsset>();
 
+        [Header("是否生成路径字段代码脚本")]
+        [Tooltip("字段匹配路径")] 
+        public bool GeneratePathCode = false;
+        
+        [Header("相对构建路径文件夹名称")]
+        [Tooltip("构建的资源的相对路径(Assets同级目录下的路径)")] 
+        public string GenerateCodeScriptPath = "";
+        
         /// <summary>
         /// 返回打包路径
         /// </summary>
