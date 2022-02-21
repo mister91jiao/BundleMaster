@@ -282,7 +282,7 @@ namespace BM
             {
                 string encryptAssetPath = Path.Combine(assetLoadTable.BuildBundlePath + "/../", assetLoadTable.EncryptPathFolder, assetsLoadSetting.BuildName);
                 //创建加密的资源
-                BuildAssetsTools.CreateEncryptAssets(bundlePackagePath, encryptAssetPath, manifest);
+                BuildAssetsTools.CreateEncryptAssets(bundlePackagePath, encryptAssetPath, manifest, assetsLoadSetting.SecretKey);
                 //保存加密的版本号文件
                 SaveBundleVersionFile(encryptAssetPath, manifest, assetsLoadSetting, true);
                 //复制Log信息
