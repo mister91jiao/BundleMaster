@@ -31,7 +31,7 @@ namespace BM
         /// </summary>
         private List<LoadFile> _loadDependFiles = new List<LoadFile>();
     
-        public LoadHandler(string assetPath, string bundlePackageName)
+        internal LoadHandler(string assetPath, string bundlePackageName)
         {
             AssetPath = assetPath;
             UniqueId = HandlerIdHelper.GetUniqueId();
@@ -69,7 +69,7 @@ namespace BM
         /// <summary>
         /// 同步加载所有的Bundle
         /// </summary>
-        public void Load()
+        internal void Load()
         {
             _loadFile.LoadAssetBundle(BundlePackageName);
             for (int i = 0; i < _loadDepends.Count; i++)
@@ -86,7 +86,7 @@ namespace BM
         /// <summary>
         /// 异步加载所有的Bundle
         /// </summary>
-        public async ETTask LoadAsync()
+        internal async ETTask LoadAsync()
         {
             //计算出所有需要加载的Bundle包的总数
             RefLoadFinishCount = _loadDepends.Count + _loadDependFiles.Count + 1;
