@@ -26,6 +26,11 @@ namespace BM
         /// </summary>
         public static void UnLoadByPath(string assetPath, string bundlePackageName = null)
         {
+            if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
+            {
+                AssetLogHelper.Log("AssetLoadMode = Develop 不需要卸载");
+                return;
+            }
             if (bundlePackageName == null)
             {
                 bundlePackageName = AssetComponentConfig.DefaultBundlePackageName;

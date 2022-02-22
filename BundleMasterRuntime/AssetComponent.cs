@@ -201,6 +201,22 @@ namespace BM
         /// </summary>
         public static BundleRuntimeInfo GetBundleRuntimeInfo(string bundlePackageName)
         {
+            
+            if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
+            {
+#if UNITY_EDITOR
+                BundleRuntimeInfo devBundleRuntimeInfo;
+                if (!BundleNameToRuntimeInfo.TryGetValue(bundlePackageName, out devBundleRuntimeInfo))
+                {
+                    devBundleRuntimeInfo = new BundleRuntimeInfo(bundlePackageName);
+                    BundleNameToRuntimeInfo.Add(bundlePackageName, devBundleRuntimeInfo);
+                }
+                return devBundleRuntimeInfo;
+#else
+                AssetLogHelper.LogError("资源加载Develop模式只能在编辑器下运行");
+#endif
+               
+            }
             if (BundleNameToRuntimeInfo.TryGetValue(bundlePackageName, out BundleRuntimeInfo bundleRuntimeInfo))
             {
                 return bundleRuntimeInfo;
