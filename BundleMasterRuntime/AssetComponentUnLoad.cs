@@ -22,6 +22,28 @@ namespace BM
         private static readonly Dictionary<string, LoadBase> TrueUnLoadPool = new Dictionary<string, LoadBase>();
         
         /// <summary>
+        /// 通过路径卸载(场景资源不可以通过路径卸载)
+        /// </summary>
+        public static void UnLoadByPath(string assetPath, string bundlePackageName = null)
+        {
+            if (bundlePackageName == null)
+            {
+                bundlePackageName = AssetComponentConfig.DefaultBundlePackageName;
+            }
+            if (!BundleNameToRuntimeInfo.TryGetValue(bundlePackageName, out BundleRuntimeInfo bundleRuntimeInfo))
+            {
+                AssetLogHelper.LogError("没有找到这个分包: " + bundlePackageName);
+                return;
+            }
+            if (!bundleRuntimeInfo.AllAssetLoadHandler.TryGetValue(assetPath, out LoadHandlerBase loadHandler))
+            {
+                AssetLogHelper.LogError("卸载没有找到这个资源的Handler: " + assetPath);
+                return;
+            }
+            loadHandler.UnLoad();
+        }
+        
+        /// <summary>
         /// 添加进预卸载池
         /// </summary>
         internal static void AddPreUnLoadPool(LoadBase loadBase)
@@ -134,6 +156,7 @@ namespace BM
                 return;
             }
             BundleRuntimeInfo bundleRuntimeInfo = BundleNameToRuntimeInfo[bundlePackageName];
+            bundleRuntimeInfo.AllAssetLoadHandler.Clear();
             LoadHandlerBase[] loadHandlers = bundleRuntimeInfo.UnLoadHandler.Values.ToArray();
             for (int i = 0; i < loadHandlers.Length; i++)
             {

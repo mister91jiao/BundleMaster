@@ -30,12 +30,23 @@ namespace BM
         /// 依赖的其它File包
         /// </summary>
         private List<LoadFile> _loadDependFiles = new List<LoadFile>();
-    
+
+        /// <summary>
+        /// 加载的状态
+        /// </summary>
+        internal LoadState LoadState = LoadState.NoLoad;
+        
+        /// <summary>
+        /// 异步等待加载的Task
+        /// </summary>
+        internal List<ETTask> AwaitEtTasks = new List<ETTask>();
+
         internal LoadHandler(string assetPath, string bundlePackageName)
         {
             AssetPath = assetPath;
             UniqueId = HandlerIdHelper.GetUniqueId();
             BundlePackageName = bundlePackageName;
+            LoadState = LoadState.NoLoad;
             if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
             {
                 //Develop模式直接返回就行
@@ -81,6 +92,7 @@ namespace BM
                 _loadDependFiles[i].LoadAssetBundle(BundlePackageName);
             }
             FileAssetBundle = _loadFile.AssetBundle;
+            LoadState = LoadState.Finish;
         }
 
         /// <summary>
@@ -88,6 +100,7 @@ namespace BM
         /// </summary>
         internal async ETTask LoadAsync()
         {
+            LoadState = LoadState.Loading;
             //计算出所有需要加载的Bundle包的总数
             RefLoadFinishCount = _loadDepends.Count + _loadDependFiles.Count + 1;
             ETTask tcs = ETTask.Create(true);
@@ -101,7 +114,29 @@ namespace BM
                 LoadAsyncLoader(_loadDependFiles[i], tcs).Coroutine();
             }
             await tcs;
+            if (LoadState != LoadState.Finish)
+            {
+                LoadState = LoadState.Finish;
+                FileAssetBundle = _loadFile.AssetBundle;
+            }
+        }
+        
+        /// <summary>
+        /// 强制异步加载完成
+        /// </summary>
+        internal void ForceAsyncLoadFinish()
+        {
+            _loadFile.ForceLoadFinish(BundlePackageName);
+            for (int i = 0; i < _loadDepends.Count; i++)
+            {
+                _loadDepends[i].ForceLoadFinish(BundlePackageName);
+            }
+            for (int i = 0; i < _loadDependFiles.Count; i++)
+            {
+                _loadDependFiles[i].ForceLoadFinish(BundlePackageName);
+            }
             FileAssetBundle = _loadFile.AssetBundle;
+            LoadState = LoadState.Finish;
         }
         
         /// <summary>
@@ -111,6 +146,7 @@ namespace BM
         {
             Asset = null;
             FileAssetBundle = null;
+            LoadState = LoadState.NoLoad;
             foreach (LoadDepend loadDepends in _loadDepends)
             {
                 loadDepends.SubRefCount();

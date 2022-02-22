@@ -45,7 +45,7 @@ namespace BM
             }
         }
 
-        public void SubRefCount()
+        internal void SubRefCount()
         {
             _refCount--;
             if (_loadState == LoadState.NoLoad)
@@ -65,7 +65,7 @@ namespace BM
             }
         }
 
-        public void LoadAssetBundle(string bundlePackageName)
+        internal void LoadAssetBundle(string bundlePackageName)
         {
             AddRefCount();
             if (_loadState == LoadState.Finish)
@@ -76,8 +76,11 @@ namespace BM
             {
                 AssetLogHelper.LogError("同步加载了正在异步加载的资源, 打断异步加载资源会导致所有异步加载的资源都立刻同步加载出来。资源名: " + FilePath + 
                                         "\nAssetBundle包名: " + AssetBundleName);
-                AssetBundle = _assetBundleCreateRequest.assetBundle;
-                return;
+                if (_assetBundleCreateRequest != null)
+                {
+                    AssetBundle = _assetBundleCreateRequest.assetBundle;
+                    return;
+                }
             }
             string assetBundlePath = AssetComponent.BundleFileExistPath(bundlePackageName, AssetBundleName);
             byte[] data;
@@ -98,7 +101,7 @@ namespace BM
             _loadFinishTasks.Clear();
         }
     
-        public async ETTask LoadAssetBundleAsync(ETTask tcs, string bundlePackageName)
+        internal async ETTask LoadAssetBundleAsync(ETTask tcs, string bundlePackageName)
         {
             AddRefCount();
             if (_loadState == LoadState.Finish)
@@ -123,6 +126,18 @@ namespace BM
             {
                 data = await VerifyHelper.GetDecryptDataAsync(assetBundlePath, _loadProgress);
             }
+            LoadDataFinish(data);
+        }
+
+        /// <summary>
+        /// Data加载完成后执行的
+        /// </summary>
+        private void LoadDataFinish(byte[] data)
+        {
+            if (_loadState == LoadState.Finish)
+            {
+                return;
+            }
             _assetBundleCreateRequest = AssetBundle.LoadFromMemoryAsync(data);
             _assetBundleCreateRequest.completed += operation =>
             {
@@ -140,7 +155,47 @@ namespace BM
                 }
             };
         }
-
+        
+        /// <summary>
+        /// 强制加载完成
+        /// </summary>
+        internal void ForceLoadFinish(string bundlePackageName)
+        {
+            if (_loadState == LoadState.Finish)
+            {
+                return;
+            }
+            if (_assetBundleCreateRequest != null)
+            {
+                AssetLogHelper.LogError("触发强制加载, 打断异步加载资源会导致所有异步加载的资源都立刻同步加载出来。资源名: " + FilePath + 
+                                       "\nAssetBundle包名: " + AssetBundleName);
+                AssetBundle = _assetBundleCreateRequest.assetBundle;
+                return;
+            }
+            string assetBundlePath = AssetComponent.BundleFileExistPath(bundlePackageName, AssetBundleName);
+            byte[] data;
+            if (AssetComponent.BundleNameToRuntimeInfo[bundlePackageName].Encrypt)
+            {
+                data = VerifyHelper.GetDecryptData(assetBundlePath, AssetComponent.BundleNameToRuntimeInfo[bundlePackageName].SecretKey);
+            }
+            else
+            {
+                data = VerifyHelper.GetDecryptData(assetBundlePath);
+            }
+            AssetBundle = AssetBundle.LoadFromMemory(data);
+            for (int i = 0; i < _loadFinishTasks.Count; i++)
+            {
+                _loadFinishTasks[i].SetResult();
+            }
+            _loadFinishTasks.Clear();
+            _loadState = LoadState.Finish;
+            //判断是否还需要
+            if (_refCount <= 0)
+            {
+                AssetComponent.AddPreUnLoadPool(this);
+            }
+        }
+        
         /// <summary>
         /// 打开进度统计
         /// </summary>
@@ -179,7 +234,7 @@ namespace BM
     /// <summary>
     /// AssetBundle加载的状态
     /// </summary>
-    public enum LoadState
+    internal enum LoadState
     {
         NoLoad = 0,
         Loading = 1,

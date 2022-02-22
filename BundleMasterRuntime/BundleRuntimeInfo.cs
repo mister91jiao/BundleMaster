@@ -20,6 +20,11 @@ namespace BM
         internal readonly Dictionary<string, LoadDepend> LoadDependDic = new Dictionary<string, LoadDepend>();
         
         /// <summary>
+        /// 资源路径对应的资源LoadHandler
+        /// </summary>
+        internal readonly Dictionary<string, LoadHandlerBase> AllAssetLoadHandler = new Dictionary<string, LoadHandlerBase>();
+        
+        /// <summary>
         /// 所有没有卸载的LoadHandler
         /// </summary>
         internal readonly Dictionary<uint, LoadHandlerBase> UnLoadHandler = new Dictionary<uint, LoadHandlerBase>();
@@ -68,5 +73,11 @@ namespace BM
             return loadSceneHandler;
         }
         public ETTask LoadSceneAsync(out LoadSceneHandler loadSceneHandler, string scenePath) => AssetComponent.LoadSceneAsync(out loadSceneHandler, scenePath, BundlePackageName);
+
+        
+        /// <summary>
+        /// 通过路径卸载(场景资源不可以通过路径卸载)
+        /// </summary>
+        public void UnLoadByPath(string assetPath) => AssetComponent.UnLoadByPath(assetPath, BundlePackageName);
     }
 }
