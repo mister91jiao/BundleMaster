@@ -84,13 +84,18 @@ namespace BM
         /// <summary>
         /// 需要更新的Bundle的信息
         /// </summary>
-        public readonly Dictionary<string, Dictionary<string, long>> PackageNeedUpdateBundlesInfos = new Dictionary<string, Dictionary<string, long>>();
+        internal readonly Dictionary<string, Dictionary<string, long>> PackageNeedUpdateBundlesInfos = new Dictionary<string, Dictionary<string, long>>();
 
         /// <summary>
         /// 需要更新的分包的版本索引列表文件
         /// </summary>
-        public readonly Dictionary<string, List<string>> PackageAllRemoteVersionFile = new Dictionary<string, List<string>>();
-        
+        internal readonly Dictionary<string, List<string>> PackageAllRemoteVersionFile = new Dictionary<string, List<string>>();
+
+        /// <summary>
+        /// 分包对应的版本号    int[本地版本, 远程版本] 仅Build模式可用
+        /// </summary>
+        internal readonly Dictionary<string, int[]> PackageToVersion = new Dictionary<string, int[]>();
+
         /// <summary>
         /// 更新完成的大小
         /// </summary>
@@ -122,5 +127,23 @@ namespace BM
         /// 下载完成的Bundle的数量
         /// </summary>
         public int FinishDownLoadBundleCount = 0;
+
+        /// <summary>
+        /// 获取更新的分包的版本索引
+        /// </summary>
+        public int[] GetVersion(string bundlePackageName)
+        {
+            if (AssetComponentConfig.AssetLoadMode != AssetLoadMode.Build)
+            {
+                AssetLogHelper.LogError("仅Build模式可用获取版本索引");
+                return null;
+            }
+            if (!PackageToVersion.TryGetValue(bundlePackageName, out int[] versionData))
+            {
+                AssetLogHelper.LogError("获取索引号没有找到分包: " + bundlePackageName);
+                return null;
+            }
+            return versionData;
+        }
     }
 }

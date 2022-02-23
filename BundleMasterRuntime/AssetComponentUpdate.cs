@@ -56,7 +56,7 @@ namespace BM
 #if UNITY_2020_1_OR_NEWER
                     if (webRequest.result != UnityWebRequest.Result.Success)
 #else
-                if (!string.IsNullOrEmpty(webRequest.error))
+                    if (!string.IsNullOrEmpty(webRequest.error))
 #endif
                     {
                         localVersionLog = "INIT|0";
@@ -66,13 +66,7 @@ namespace BM
                         localVersionLog = webRequest.downloadHandler.text;
                     }
                 }
-                Dictionary<string, long> needUpdateBundlesInfo = GetNeedUpdateBundle(bundlePackageName, remoteVersionLog, localVersionLog, allRemoteVersionFiles);
-                updateBundleDataInfo.PackageNeedUpdateBundlesInfos.Add(bundlePackageName, needUpdateBundlesInfo);
-                foreach (long needUpdateBundleSize in needUpdateBundlesInfo.Values)
-                {
-                    updateBundleDataInfo.NeedUpdateSize += needUpdateBundleSize;
-                    updateBundleDataInfo.NeedDownLoadBundleCount++;
-                }
+                CalcNeedUpdateBundle(updateBundleDataInfo, bundlePackageName, remoteVersionLog, localVersionLog, allRemoteVersionFiles);
             }
             if (updateBundleDataInfo.NeedUpdateSize > 0)
             {
@@ -84,12 +78,13 @@ namespace BM
         /// <summary>
         /// 获取所哟需要更新的Bundle的文件
         /// </summary>
-        private static Dictionary<string, long> GetNeedUpdateBundle(string bundlePackageName, string remoteVersionLog, string localVersionLog, List<string> allRemoteVersionFiles)
+        private static void CalcNeedUpdateBundle(UpdateBundleDataInfo updateBundleDataInfo, string bundlePackageName, string remoteVersionLog, string localVersionLog, List<string> allRemoteVersionFiles)
         {
             string[] remoteVersionData = remoteVersionLog.Split('\n');
             string[] localVersionData = localVersionLog.Split('\n');
             int remoteVersion = int.Parse(remoteVersionData[0].Split('|')[1]);
             int localVersion = int.Parse(localVersionData[0].Split('|')[1]);
+            updateBundleDataInfo.PackageToVersion.Add(bundlePackageName, new int[2]{localVersion, remoteVersion});
             if (localVersion > remoteVersion)
             {
                 AssetLogHelper.LogError("本地版本号优先与远程版本号 " + localVersion + ">" + remoteVersion + "\n"
@@ -138,7 +133,12 @@ namespace BM
                     needUpdateBundles.Add(info[0], long.Parse(info[1]));
                 }
             }
-            return needUpdateBundles;
+            updateBundleDataInfo.PackageNeedUpdateBundlesInfos.Add(bundlePackageName, needUpdateBundles);
+            foreach (long needUpdateBundleSize in needUpdateBundles.Values)
+            {
+                updateBundleDataInfo.NeedUpdateSize += needUpdateBundleSize;
+                updateBundleDataInfo.NeedDownLoadBundleCount++;
+            }
         }
         
         /// <summary>
