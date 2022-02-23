@@ -250,6 +250,7 @@ namespace BM
             using (FileStream fs = new FileStream(Path.Combine(DownLoadPackagePath, FileName), FileMode.Create))
             {
                 fs.Write(data, 0, data.Length);
+                //await fs.WriteAsync(data, 0, data.Length);
                 fs.Close();
             }
             UpdateBundleDataInfo.FinishUpdateSize += data.Length;
