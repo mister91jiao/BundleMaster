@@ -8,84 +8,132 @@ namespace BM
 {
     public static partial class AssetComponent
     {
-        public static LoadHandler<T> Load<T>(string assetPath, string bundlePackageName = null) where T : UnityEngine.Object
+        /// <summary>
+        /// 同步加载(泛型)
+        /// </summary>
+        public static T Load<T>(string assetPath, string bundlePackageName = null) where T : UnityEngine.Object
         {
+            T asset = null;
+            LoadHandler loadHandler = null;
             if (bundlePackageName == null)
             {
                 bundlePackageName = AssetComponentConfig.DefaultBundlePackageName;
             }
-            LoadHandler<T> loadHandler = null;
             if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
             {
 #if UNITY_EDITOR
-                loadHandler = new LoadHandler<T>(assetPath, bundlePackageName);
-                loadHandler.Asset = AssetDatabase.LoadAssetAtPath<T>(assetPath);
+                loadHandler = new LoadHandler(assetPath, bundlePackageName);
+                asset = AssetDatabase.LoadAssetAtPath<T>(assetPath);
+                loadHandler.Asset = asset;
 #else
                 AssetLogHelper.LogError("加载资源: " + assetPath + " 失败(资源加载Develop模式只能在编辑器下运行)");
 #endif
-                return loadHandler;
+                return asset;
             }
             if (!BundleNameToRuntimeInfo.TryGetValue(bundlePackageName, out BundleRuntimeInfo bundleRuntimeInfo))
             {
                 AssetLogHelper.LogError(bundlePackageName + "分包没有初始化");
                 return null;
             }
-            if (bundleRuntimeInfo.AllAssetLoadHandler.TryGetValue(assetPath, out LoadHandlerBase loadHandlerBase))
+            
+            if (!bundleRuntimeInfo.AllAssetLoadHandler.TryGetValue(assetPath, out loadHandler))
             {
-                loadHandler = loadHandlerBase as LoadHandler<T>;
-            }
-            else
-            {
-                loadHandler = new LoadHandler<T>(assetPath, bundlePackageName);
+                loadHandler = new LoadHandler(assetPath, bundlePackageName);
                 bundleRuntimeInfo.AllAssetLoadHandler.Add(assetPath, loadHandler);
                 bundleRuntimeInfo.UnLoadHandler.Add(loadHandler.UniqueId, loadHandler);
             }
             if (loadHandler.LoadState == LoadState.NoLoad)
             {
                 loadHandler.Load();
-                loadHandler.Asset = loadHandler.FileAssetBundle.LoadAsset<T>(assetPath);
-                return loadHandler;
+                asset = loadHandler.FileAssetBundle.LoadAsset<T>(assetPath);
+                loadHandler.Asset = asset;
+                return asset;
             }
             else if (loadHandler.LoadState == LoadState.Loading)
             {
                 loadHandler.ForceAsyncLoadFinish();
-                loadHandler.Asset = loadHandler.FileAssetBundle.LoadAsset<T>(assetPath);
+                asset = loadHandler.FileAssetBundle.LoadAsset<T>(assetPath);
+                loadHandler.Asset = asset;
             }
-            return loadHandler;
+            return asset;
         }
-    
+        
         /// <summary>
-        /// 异步加载
+        /// 同步加载
         /// </summary>
-        public static async ETTask<LoadHandler<T>> LoadAsync<T>(string assetPath, string bundlePackageName = null) where T : UnityEngine.Object
+        public static UnityEngine.Object Load(string assetPath, string bundlePackageName = null)
         {
+            LoadHandler loadHandler = null;
             if (bundlePackageName == null)
             {
                 bundlePackageName = AssetComponentConfig.DefaultBundlePackageName;
             }
-            LoadHandler<T> loadHandler = null;
             if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
             {
 #if UNITY_EDITOR
-                loadHandler = new LoadHandler<T>(assetPath, bundlePackageName);
-                loadHandler.Asset = AssetDatabase.LoadAssetAtPath<T>(assetPath);
+                loadHandler = new LoadHandler(assetPath, bundlePackageName);
+                loadHandler.Asset = loadHandler.Asset = AssetDatabase.LoadAssetAtPath(assetPath, typeof(UnityEngine.Object));
 #else
                 AssetLogHelper.LogError("加载资源: " + assetPath + " 失败(资源加载Develop模式只能在编辑器下运行)");
 #endif
-                return loadHandler;
+                return loadHandler.Asset;
             }
             if (!BundleNameToRuntimeInfo.TryGetValue(bundlePackageName, out BundleRuntimeInfo bundleRuntimeInfo))
             {
                 AssetLogHelper.LogError(bundlePackageName + "分包没有初始化");
                 return null;
             }
-            if (bundleRuntimeInfo.AllAssetLoadHandler.TryGetValue(assetPath, out LoadHandlerBase loadHandlerBase))
+            
+            if (!bundleRuntimeInfo.AllAssetLoadHandler.TryGetValue(assetPath, out loadHandler))
             {
-                loadHandler = loadHandlerBase as LoadHandler<T>;
+                loadHandler = new LoadHandler(assetPath, bundlePackageName);
+                bundleRuntimeInfo.AllAssetLoadHandler.Add(assetPath, loadHandler);
+                bundleRuntimeInfo.UnLoadHandler.Add(loadHandler.UniqueId, loadHandler);
             }
-            else
+            if (loadHandler.LoadState == LoadState.NoLoad)
             {
-                loadHandler = new LoadHandler<T>(assetPath, bundlePackageName);
+                loadHandler.Load();
+                loadHandler.Asset = loadHandler.FileAssetBundle.LoadAsset(assetPath);
+                return loadHandler.Asset;
+            }
+            else if (loadHandler.LoadState == LoadState.Loading)
+            {
+                loadHandler.ForceAsyncLoadFinish();
+                loadHandler.Asset = loadHandler.FileAssetBundle.LoadAsset(assetPath);
+            }
+            return loadHandler.Asset;
+        }
+    
+        /// <summary>
+        /// 异步加载(泛型)
+        /// </summary>
+        public static async ETTask<T> LoadAsync<T>(string assetPath, string bundlePackageName = null) where T : UnityEngine.Object
+        {
+            if (bundlePackageName == null)
+            {
+                bundlePackageName = AssetComponentConfig.DefaultBundlePackageName;
+            }
+            LoadHandler loadHandler = null;
+            T asset = null;
+            if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
+            {
+#if UNITY_EDITOR
+                loadHandler = new LoadHandler(assetPath, bundlePackageName);
+                asset = AssetDatabase.LoadAssetAtPath<T>(assetPath);
+                loadHandler.Asset = asset;
+#else
+                AssetLogHelper.LogError("加载资源: " + assetPath + " 失败(资源加载Develop模式只能在编辑器下运行)");
+#endif
+                return asset;
+            }
+            if (!BundleNameToRuntimeInfo.TryGetValue(bundlePackageName, out BundleRuntimeInfo bundleRuntimeInfo))
+            {
+                AssetLogHelper.LogError(bundlePackageName + "分包没有初始化");
+                return null;
+            }
+            if (!bundleRuntimeInfo.AllAssetLoadHandler.TryGetValue(assetPath, out loadHandler))
+            {
+                loadHandler = new LoadHandler(assetPath, bundlePackageName);
                 bundleRuntimeInfo.AllAssetLoadHandler.Add(assetPath, loadHandler);
                 bundleRuntimeInfo.UnLoadHandler.Add(loadHandler.UniqueId, loadHandler);
             }
@@ -97,7 +145,8 @@ namespace BM
                 AssetBundleRequest loadAssetAsync = loadHandler.FileAssetBundle.LoadAssetAsync<T>(assetPath);
                 loadAssetAsync.completed += operation =>
                 {
-                    loadHandler.Asset = loadAssetAsync.asset as T;
+                    loadHandler.Asset = loadAssetAsync.asset;
+                    asset = loadHandler.Asset as T;
                     for (int i = 0; i < loadHandler.AwaitEtTasks.Count; i++)
                     {
                         ETTask etTask = loadHandler.AwaitEtTasks[i];
@@ -106,18 +155,82 @@ namespace BM
                     loadHandler.AwaitEtTasks.Clear();
                 };
                 await tcs;
-                return loadHandler;
+                return asset;
             }
             else if (loadHandler.LoadState == LoadState.Loading)
             {
                 ETTask tcs = ETTask.Create(true);
                 loadHandler.AwaitEtTasks.Add(tcs);
                 await tcs;
-                return loadHandler;
+                return loadHandler.Asset as T;
             }
             else
             {
-                return loadHandler;
+                return loadHandler.Asset as T;
+            }
+        }
+        
+        /// <summary>
+        /// 异步加载
+        /// </summary>
+        public static async ETTask<UnityEngine.Object> LoadAsync(string assetPath, string bundlePackageName = null)
+        {
+            if (bundlePackageName == null)
+            {
+                bundlePackageName = AssetComponentConfig.DefaultBundlePackageName;
+            }
+            LoadHandler loadHandler = null;
+            if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
+            {
+#if UNITY_EDITOR
+                loadHandler = new LoadHandler(assetPath, bundlePackageName);
+                
+                loadHandler.Asset = AssetDatabase.LoadAssetAtPath(assetPath, typeof(UnityEngine.Object));
+#else
+                AssetLogHelper.LogError("加载资源: " + assetPath + " 失败(资源加载Develop模式只能在编辑器下运行)");
+#endif
+                return loadHandler.Asset;
+            }
+            if (!BundleNameToRuntimeInfo.TryGetValue(bundlePackageName, out BundleRuntimeInfo bundleRuntimeInfo))
+            {
+                AssetLogHelper.LogError(bundlePackageName + "分包没有初始化");
+                return null;
+            }
+            if (!bundleRuntimeInfo.AllAssetLoadHandler.TryGetValue(assetPath, out loadHandler))
+            {
+                loadHandler = new LoadHandler(assetPath, bundlePackageName);
+                bundleRuntimeInfo.AllAssetLoadHandler.Add(assetPath, loadHandler);
+                bundleRuntimeInfo.UnLoadHandler.Add(loadHandler.UniqueId, loadHandler);
+            }
+            if (loadHandler.LoadState == LoadState.NoLoad)
+            {
+                ETTask tcs = ETTask.Create(true);
+                loadHandler.AwaitEtTasks.Add(tcs);
+                await loadHandler.LoadAsync();
+                AssetBundleRequest loadAssetAsync = loadHandler.FileAssetBundle.LoadAssetAsync(assetPath);
+                loadAssetAsync.completed += operation =>
+                {
+                    loadHandler.Asset = loadAssetAsync.asset;
+                    for (int i = 0; i < loadHandler.AwaitEtTasks.Count; i++)
+                    {
+                        ETTask etTask = loadHandler.AwaitEtTasks[i];
+                        etTask.SetResult();
+                    }
+                    loadHandler.AwaitEtTasks.Clear();
+                };
+                await tcs;
+                return loadHandler.Asset;
+            }
+            else if (loadHandler.LoadState == LoadState.Loading)
+            {
+                ETTask tcs = ETTask.Create(true);
+                loadHandler.AwaitEtTasks.Add(tcs);
+                await tcs;
+                return loadHandler.Asset;
+            }
+            else
+            {
+                return loadHandler.Asset;
             }
         }
         
@@ -172,6 +285,9 @@ namespace BM
             return loadSceneHandler;
         }
 
+        /// <summary>
+        /// 异步加载场景的AssetBundle包 提前返回LoadSceneHandler计算进度用
+        /// </summary>
         public static ETTask LoadSceneAsync(out LoadSceneHandler loadSceneHandler, string scenePath, string bundlePackageName = null)
         {
             ETTask tcs = ETTask.Create();

@@ -40,7 +40,7 @@ namespace BM
                 AssetLogHelper.LogError("没有找到这个分包: " + bundlePackageName);
                 return;
             }
-            if (!bundleRuntimeInfo.AllAssetLoadHandler.TryGetValue(assetPath, out LoadHandlerBase loadHandler))
+            if (!bundleRuntimeInfo.AllAssetLoadHandler.TryGetValue(assetPath, out LoadHandler loadHandler))
             {
                 AssetLogHelper.LogError("卸载没有找到这个资源的Handler: " + assetPath);
                 return;

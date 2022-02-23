@@ -4,12 +4,12 @@ using ET;
 
 namespace BM
 {
-    public class LoadHandler<T> : LoadHandlerBase where T : UnityEngine.Object
+    public class LoadHandler : LoadHandlerBase
     {
         /// <summary>
         /// 加载出来的资源
         /// </summary>
-        public T Asset = null;
+        public UnityEngine.Object Asset = null;
         
         /// <summary>
         /// File文件AssetBundle的引用

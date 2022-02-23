@@ -22,7 +22,7 @@ namespace BM
         /// <summary>
         /// 资源路径对应的资源LoadHandler
         /// </summary>
-        internal readonly Dictionary<string, LoadHandlerBase> AllAssetLoadHandler = new Dictionary<string, LoadHandlerBase>();
+        internal readonly Dictionary<string, LoadHandler> AllAssetLoadHandler = new Dictionary<string, LoadHandler>();
         
         /// <summary>
         /// 所有没有卸载的LoadHandler
@@ -59,21 +59,14 @@ namespace BM
             }
         }
         
-        public LoadHandler<T> Load<T>(string assetPath) where T : UnityEngine.Object => AssetComponent.Load<T>(assetPath, BundlePackageName);
-        public async ETTask<LoadHandler<T>> LoadAsync<T>(string assetPath) where T : UnityEngine.Object
-        {
-            LoadHandler<T> loadHandler = await AssetComponent.LoadAsync<T>(assetPath, BundlePackageName);
-            return loadHandler;
-        }
+        public T Load<T>(string assetPath) where T : UnityEngine.Object => AssetComponent.Load<T>(assetPath, BundlePackageName);
+        public UnityEngine.Object Load(string assetPath) => AssetComponent.Load(assetPath, BundlePackageName);
+        public async ETTask<T> LoadAsync<T>(string assetPath) where T : UnityEngine.Object => await AssetComponent.LoadAsync<T>(assetPath, BundlePackageName);
+        public async ETTask<UnityEngine.Object> LoadAsync(string assetPath) => await AssetComponent.LoadAsync(assetPath, BundlePackageName);
         
         public LoadSceneHandler LoadScene(string scenePath) => AssetComponent.LoadScene(scenePath, BundlePackageName);
-        public async ETTask<LoadSceneHandler> LoadSceneAsync(string scenePath)
-        {
-            LoadSceneHandler loadSceneHandler = await AssetComponent.LoadSceneAsync(scenePath, BundlePackageName);
-            return loadSceneHandler;
-        }
+        public async ETTask<LoadSceneHandler> LoadSceneAsync(string scenePath) => await AssetComponent.LoadSceneAsync(scenePath, BundlePackageName);
         public ETTask LoadSceneAsync(out LoadSceneHandler loadSceneHandler, string scenePath) => AssetComponent.LoadSceneAsync(out loadSceneHandler, scenePath, BundlePackageName);
-
         
         /// <summary>
         /// 通过路径卸载(场景资源不可以通过路径卸载)
