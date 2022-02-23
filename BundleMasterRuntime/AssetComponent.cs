@@ -71,6 +71,7 @@ namespace BM
 #if UNITY_EDITOR
                 UnityEngine.Object asset = AssetDatabase.LoadAssetAtPath(assetPath, typeof(UnityEngine.Object));
 #else
+                UnityEngine.Object asset = null;
                 AssetLogHelper.LogError("加载资源: " + assetPath + " 失败(资源加载Develop模式只能在编辑器下运行)");
 #endif
                 return asset;
@@ -180,6 +181,7 @@ namespace BM
 #if UNITY_EDITOR
                 UnityEngine.Object asset = AssetDatabase.LoadAssetAtPath(assetPath, typeof(UnityEngine.Object));
 #else
+                UnityEngine.Object asset = null;
                 AssetLogHelper.LogError("加载资源: " + assetPath + " 失败(资源加载Develop模式只能在编辑器下运行)");
 #endif
                 return asset;
