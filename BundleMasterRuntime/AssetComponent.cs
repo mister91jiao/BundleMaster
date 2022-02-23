@@ -14,7 +14,6 @@ namespace BM
         public static T Load<T>(string assetPath, string bundlePackageName = null) where T : UnityEngine.Object
         {
             T asset = null;
-            LoadHandler loadHandler = null;
             if (bundlePackageName == null)
             {
                 bundlePackageName = AssetComponentConfig.DefaultBundlePackageName;
@@ -22,14 +21,13 @@ namespace BM
             if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
             {
 #if UNITY_EDITOR
-                loadHandler = new LoadHandler(assetPath, bundlePackageName);
                 asset = AssetDatabase.LoadAssetAtPath<T>(assetPath);
-                loadHandler.Asset = asset;
 #else
                 AssetLogHelper.LogError("加载资源: " + assetPath + " 失败(资源加载Develop模式只能在编辑器下运行)");
 #endif
                 return asset;
             }
+            LoadHandler loadHandler = null;
             if (!BundleNameToRuntimeInfo.TryGetValue(bundlePackageName, out BundleRuntimeInfo bundleRuntimeInfo))
             {
                 AssetLogHelper.LogError(bundlePackageName + "分包没有初始化");
@@ -63,7 +61,7 @@ namespace BM
         /// </summary>
         public static UnityEngine.Object Load(string assetPath, string bundlePackageName = null)
         {
-            LoadHandler loadHandler = null;
+           
             if (bundlePackageName == null)
             {
                 bundlePackageName = AssetComponentConfig.DefaultBundlePackageName;
@@ -71,19 +69,18 @@ namespace BM
             if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
             {
 #if UNITY_EDITOR
-                loadHandler = new LoadHandler(assetPath, bundlePackageName);
-                loadHandler.Asset = loadHandler.Asset = AssetDatabase.LoadAssetAtPath(assetPath, typeof(UnityEngine.Object));
+                UnityEngine.Object asset = AssetDatabase.LoadAssetAtPath(assetPath, typeof(UnityEngine.Object));
 #else
                 AssetLogHelper.LogError("加载资源: " + assetPath + " 失败(资源加载Develop模式只能在编辑器下运行)");
 #endif
-                return loadHandler.Asset;
+                return asset;
             }
+            LoadHandler loadHandler = null;
             if (!BundleNameToRuntimeInfo.TryGetValue(bundlePackageName, out BundleRuntimeInfo bundleRuntimeInfo))
             {
                 AssetLogHelper.LogError(bundlePackageName + "分包没有初始化");
                 return null;
             }
-            
             if (!bundleRuntimeInfo.AllAssetLoadHandler.TryGetValue(assetPath, out loadHandler))
             {
                 loadHandler = new LoadHandler(assetPath, bundlePackageName);
@@ -113,19 +110,18 @@ namespace BM
             {
                 bundlePackageName = AssetComponentConfig.DefaultBundlePackageName;
             }
-            LoadHandler loadHandler = null;
+            
             T asset = null;
             if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
             {
 #if UNITY_EDITOR
-                loadHandler = new LoadHandler(assetPath, bundlePackageName);
                 asset = AssetDatabase.LoadAssetAtPath<T>(assetPath);
-                loadHandler.Asset = asset;
 #else
                 AssetLogHelper.LogError("加载资源: " + assetPath + " 失败(资源加载Develop模式只能在编辑器下运行)");
 #endif
                 return asset;
             }
+            LoadHandler loadHandler = null;
             if (!BundleNameToRuntimeInfo.TryGetValue(bundlePackageName, out BundleRuntimeInfo bundleRuntimeInfo))
             {
                 AssetLogHelper.LogError(bundlePackageName + "分包没有初始化");
@@ -179,18 +175,16 @@ namespace BM
             {
                 bundlePackageName = AssetComponentConfig.DefaultBundlePackageName;
             }
-            LoadHandler loadHandler = null;
             if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
             {
 #if UNITY_EDITOR
-                loadHandler = new LoadHandler(assetPath, bundlePackageName);
-                
-                loadHandler.Asset = AssetDatabase.LoadAssetAtPath(assetPath, typeof(UnityEngine.Object));
+                UnityEngine.Object asset = AssetDatabase.LoadAssetAtPath(assetPath, typeof(UnityEngine.Object));
 #else
                 AssetLogHelper.LogError("加载资源: " + assetPath + " 失败(资源加载Develop模式只能在编辑器下运行)");
 #endif
-                return loadHandler.Asset;
+                return asset;
             }
+            LoadHandler loadHandler = null;
             if (!BundleNameToRuntimeInfo.TryGetValue(bundlePackageName, out BundleRuntimeInfo bundleRuntimeInfo))
             {
                 AssetLogHelper.LogError(bundlePackageName + "分包没有初始化");
