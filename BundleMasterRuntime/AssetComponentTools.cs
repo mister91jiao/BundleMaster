@@ -129,7 +129,7 @@ namespace BM
         public int FinishDownLoadBundleCount = 0;
 
         /// <summary>
-        /// 获取更新的分包的版本索引
+        /// 获取更新的分包的版本索引    int[本地版本, 远程版本]
         /// </summary>
         public int[] GetVersion(string bundlePackageName)
         {
