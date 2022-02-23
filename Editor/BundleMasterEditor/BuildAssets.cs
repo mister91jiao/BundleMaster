@@ -64,12 +64,13 @@ namespace BM
                 AssetDatabase.Refresh();
             }
             //构建完成后索引自动+1 需要自己取消注释
-            // foreach (AssetsLoadSetting assetsLoadSetting in assetLoadTable.AssetsLoadSettings)
+            // foreach (string guid in AssetDatabase.FindAssets($"t:{nameof(AssetsLoadSetting)}"))
             // {
+            //     AssetsLoadSetting assetsLoadSetting = AssetDatabase.LoadAssetAtPath<AssetsLoadSetting>(AssetDatabase.GUIDToAssetPath(guid));
             //     assetsLoadSetting.BuildIndex++;
             //     EditorUtility.SetDirty(assetsLoadSetting);
             // }
-            // AssetDatabase.SaveAssets();
+            AssetDatabase.SaveAssets();
             //打包结束
             AssetLogHelper.Log("打包结束\n" + assetLoadTable.BuildBundlePath);
         }
