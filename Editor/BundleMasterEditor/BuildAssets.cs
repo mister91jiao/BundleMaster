@@ -149,7 +149,10 @@ namespace BM
             {
                 SceneAsset sceneAsset = sceneAssets[i];
                 string scenePath = AssetDatabase.GetAssetPath(sceneAsset);
-                files.Add(scenePath);
+                if (!files.Contains(scenePath))
+                {
+                    files.Add(scenePath);
+                }
             }
             //分析所有需要主动加载的资源
             List<string> needRemoveFile = new List<string>();
