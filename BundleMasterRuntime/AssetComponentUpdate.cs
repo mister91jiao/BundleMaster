@@ -92,17 +92,6 @@ namespace BM
                 + "remoteBundleTime: " + remoteVersionData[0].Split('|')[0] + "\n"
                 + "Note: 发送了版本回退或者忘了累进版本号");
             }
-            HashSet<string> allLocalBundleName = new HashSet<string>();
-            for (int i = 1; i < localVersionData.Length; i++)
-            {
-                string lineStr = localVersionData[i];
-                if (string.IsNullOrWhiteSpace(lineStr))
-                {
-                    continue;
-                }
-                string[] info = lineStr.Split('|');
-                allLocalBundleName.Add(info[0]);
-            }
             //创建最后需要返回的数据
             Dictionary<string, long> needUpdateBundles = new Dictionary<string, long>();
             for (int i = 1; i < remoteVersionData.Length; i++)
@@ -114,21 +103,16 @@ namespace BM
                 }
                 string[] info = lineStr.Split('|');
                 allRemoteVersionFiles.Add(info[0]);
-                if (allLocalBundleName.Contains(info[0]))
+                //如果文件不存在直接加入更新
+                string filePath = BundleFileExistPath(bundlePackageName, info[0]);
+                uint fileCRC32 = VerifyHelper.GetFileCRC32(filePath);
+                if (fileCRC32 == 0)
                 {
-                    string filePath = BundleFileExistPath(bundlePackageName, info[0]);
-                    if (filePath == null)
-                    {
-                        needUpdateBundles.Add(info[0], long.Parse(info[1]));
-                        continue;
-                    }
-                    uint fileCRC32 = VerifyHelper.GetFileCRC32(filePath);
-                    if (uint.Parse(info[2]) != fileCRC32)
-                    {
-                        needUpdateBundles.Add(info[0], long.Parse(info[1]));
-                    }
+                    needUpdateBundles.Add(info[0], long.Parse(info[1]));
+                    continue;
                 }
-                else
+                //判断是否和远程一样, 不一样直接加入更新
+                if (uint.Parse(info[2]) != fileCRC32)
                 {
                     needUpdateBundles.Add(info[0], long.Parse(info[1]));
                 }
