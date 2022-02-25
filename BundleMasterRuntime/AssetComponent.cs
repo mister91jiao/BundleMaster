@@ -36,7 +36,7 @@ namespace BM
             
             if (!bundleRuntimeInfo.AllAssetLoadHandler.TryGetValue(assetPath, out loadHandler))
             {
-                loadHandler = new LoadHandler(assetPath, bundlePackageName);
+                loadHandler = LoadHandlerFactory.GetLoadHandler(assetPath, bundlePackageName);
                 bundleRuntimeInfo.AllAssetLoadHandler.Add(assetPath, loadHandler);
                 bundleRuntimeInfo.UnLoadHandler.Add(loadHandler.UniqueId, loadHandler);
             }
@@ -84,7 +84,7 @@ namespace BM
             }
             if (!bundleRuntimeInfo.AllAssetLoadHandler.TryGetValue(assetPath, out loadHandler))
             {
-                loadHandler = new LoadHandler(assetPath, bundlePackageName);
+                loadHandler = LoadHandlerFactory.GetLoadHandler(assetPath, bundlePackageName);
                 bundleRuntimeInfo.AllAssetLoadHandler.Add(assetPath, loadHandler);
                 bundleRuntimeInfo.UnLoadHandler.Add(loadHandler.UniqueId, loadHandler);
             }
@@ -130,7 +130,7 @@ namespace BM
             }
             if (!bundleRuntimeInfo.AllAssetLoadHandler.TryGetValue(assetPath, out loadHandler))
             {
-                loadHandler = new LoadHandler(assetPath, bundlePackageName);
+                loadHandler = LoadHandlerFactory.GetLoadHandler(assetPath, bundlePackageName);
                 bundleRuntimeInfo.AllAssetLoadHandler.Add(assetPath, loadHandler);
                 bundleRuntimeInfo.UnLoadHandler.Add(loadHandler.UniqueId, loadHandler);
             }
@@ -194,7 +194,7 @@ namespace BM
             }
             if (!bundleRuntimeInfo.AllAssetLoadHandler.TryGetValue(assetPath, out loadHandler))
             {
-                loadHandler = new LoadHandler(assetPath, bundlePackageName);
+                loadHandler = LoadHandlerFactory.GetLoadHandler(assetPath, bundlePackageName);
                 bundleRuntimeInfo.AllAssetLoadHandler.Add(assetPath, loadHandler);
                 bundleRuntimeInfo.UnLoadHandler.Add(loadHandler.UniqueId, loadHandler);
             }

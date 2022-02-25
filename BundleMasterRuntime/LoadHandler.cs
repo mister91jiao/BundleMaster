@@ -41,12 +41,13 @@ namespace BM
         /// </summary>
         internal List<ETTask> AwaitEtTasks = new List<ETTask>();
 
-        internal LoadHandler(string assetPath, string bundlePackageName)
+        internal void Init(string assetPath, string bundlePackageName)
         {
             AssetPath = assetPath;
             UniqueId = HandlerIdHelper.GetUniqueId();
             BundlePackageName = bundlePackageName;
             LoadState = LoadState.NoLoad;
+            UnloadFinish = false;
             if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
             {
                 //Develop模式直接返回就行
@@ -159,6 +160,20 @@ namespace BM
             _loadDependFiles.Clear();
             _loadFile.SubRefCount();
             _loadFile = null;
+            //从缓存里取出进池
+            if (!AssetComponent.BundleNameToRuntimeInfo.TryGetValue(BundlePackageName, out BundleRuntimeInfo bundleRuntimeInfo))
+            {
+                AssetLogHelper.LogError("没要找到分包的信息: " + BundlePackageName);
+                return;
+            }
+            if (!bundleRuntimeInfo.AllAssetLoadHandler.ContainsKey(AssetPath))
+            {
+                AssetLogHelper.LogError("没要找到缓存的LoadHandler: " + AssetPath);
+                return;
+            }
+            bundleRuntimeInfo.AllAssetLoadHandler.Remove(AssetPath);
+            //进池
+            LoadHandlerFactory.EnterPool(this);
         }
         
     }

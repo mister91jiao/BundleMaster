@@ -161,12 +161,12 @@ namespace BM
                 return;
             }
             BundleRuntimeInfo bundleRuntimeInfo = BundleNameToRuntimeInfo[bundlePackageName];
-            bundleRuntimeInfo.AllAssetLoadHandler.Clear();
             LoadHandlerBase[] loadHandlers = bundleRuntimeInfo.UnLoadHandler.Values.ToArray();
             for (int i = 0; i < loadHandlers.Length; i++)
             {
                 loadHandlers[i].UnLoad();
             }
+            bundleRuntimeInfo.AllAssetLoadHandler.Clear();
             if (bundleRuntimeInfo.Shader != null)
             {
                 bundleRuntimeInfo.Shader.Unload(true);
