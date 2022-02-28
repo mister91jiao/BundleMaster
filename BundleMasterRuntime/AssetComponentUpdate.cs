@@ -38,9 +38,6 @@ namespace BM
                 {
                     continue;
                 }
-                //创建记录需要更新的Bundle的信息
-                List<string> allRemoteVersionFiles = new List<string>();
-                updateBundleDataInfo.PackageAllRemoteVersionFile.Add(bundlePackageName, allRemoteVersionFiles);
                 string localVersionLog;
                 //获取本地的VersionLog
                 string localVersionLogExistPath = BundleFileExistPath(bundlePackageName, "VersionLogs.txt");
@@ -66,7 +63,7 @@ namespace BM
                         localVersionLog = webRequest.downloadHandler.text;
                     }
                 }
-                CalcNeedUpdateBundle(updateBundleDataInfo, bundlePackageName, remoteVersionLog, localVersionLog, allRemoteVersionFiles);
+                await CalcNeedUpdateBundle(updateBundleDataInfo, bundlePackageName, remoteVersionLog, localVersionLog);
             }
             if (updateBundleDataInfo.NeedUpdateSize > 0)
             {
@@ -78,7 +75,7 @@ namespace BM
         /// <summary>
         /// 获取所哟需要更新的Bundle的文件
         /// </summary>
-        private static void CalcNeedUpdateBundle(UpdateBundleDataInfo updateBundleDataInfo, string bundlePackageName, string remoteVersionLog, string localVersionLog, List<string> allRemoteVersionFiles)
+        private static async ETTask CalcNeedUpdateBundle(UpdateBundleDataInfo updateBundleDataInfo, string bundlePackageName, string remoteVersionLog, string localVersionLog)
         {
             string[] remoteVersionData = remoteVersionLog.Split('\n');
             string[] localVersionData = localVersionLog.Split('\n');
@@ -102,10 +99,9 @@ namespace BM
                     continue;
                 }
                 string[] info = lineStr.Split('|');
-                allRemoteVersionFiles.Add(info[0]);
                 //如果文件不存在直接加入更新
                 string filePath = BundleFileExistPath(bundlePackageName, info[0]);
-                uint fileCRC32 = VerifyHelper.GetFileCRC32(filePath);
+                uint fileCRC32 = await VerifyHelper.GetFileCRC32(filePath);
                 if (fileCRC32 == 0)
                 {
                     needUpdateBundles.Add(info[0], long.Parse(info[1]));
@@ -233,8 +229,15 @@ namespace BM
             byte[] data = await DownloadBundleHelper.DownloadDataByUrl(url);
             using (FileStream fs = new FileStream(Path.Combine(DownLoadPackagePath, FileName), FileMode.Create))
             {
-                fs.Write(data, 0, data.Length);
-                //await fs.WriteAsync(data, 0, data.Length);
+                //大于2M用异步
+                if (data.Length > 2097152)
+                {
+                    await fs.WriteAsync(data, 0, data.Length);
+                }
+                else
+                {
+                    fs.Write(data, 0, data.Length);
+                }
                 fs.Close();
             }
             UpdateBundleDataInfo.FinishUpdateSize += data.Length;

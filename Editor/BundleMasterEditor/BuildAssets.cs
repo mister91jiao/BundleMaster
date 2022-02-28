@@ -375,7 +375,7 @@ namespace BM
                 foreach (string assetBundle in assetBundles)
                 {
                     string bundlePath = Path.Combine(bundlePackagePath, assetBundle);
-                    uint crc32 = VerifyHelper.GetFileCRC32(bundlePath);
+                    uint crc32 = VerifyHelper.GetCRC32(File.ReadAllBytes(bundlePath));
                     string info = assetBundle + "|" + VerifyHelper.GetFileLength(bundlePath) + "|" + crc32 + "\n";
                     sb.Append(info);
                 }

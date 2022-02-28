@@ -87,11 +87,6 @@ namespace BM
         internal readonly Dictionary<string, Dictionary<string, long>> PackageNeedUpdateBundlesInfos = new Dictionary<string, Dictionary<string, long>>();
 
         /// <summary>
-        /// 需要更新的分包的版本索引列表文件
-        /// </summary>
-        internal readonly Dictionary<string, List<string>> PackageAllRemoteVersionFile = new Dictionary<string, List<string>>();
-
-        /// <summary>
         /// 分包对应的版本号    int[本地版本, 远程版本] 仅Build模式可用
         /// </summary>
         internal readonly Dictionary<string, int[]> PackageToVersion = new Dictionary<string, int[]>();

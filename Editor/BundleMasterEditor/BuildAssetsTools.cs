@@ -128,28 +128,5 @@ namespace BM
                 sw.WriteLine(sb.ToString());
             }
         }
-        
-        /// <summary>
-        /// 保存Bundle的版本号文件
-        /// </summary>
-        private static void SaveBundleVersionFile(string bundlePackagePath, AssetBundleManifest manifest, AssetsLoadSetting assetsLoadSetting, bool encrypt)
-        {
-            string[] assetBundles = manifest.GetAllAssetBundles();
-            using (StreamWriter sw = new StreamWriter(Path.Combine(bundlePackagePath, "VersionLogs.txt")))
-            {
-                StringBuilder sb = new StringBuilder();
-                string versionHandler = System.DateTime.Now + "|" + assetsLoadSetting.BuildIndex + "|" + (encrypt).ToString() + "\n";
-                sb.Append(versionHandler);
-                foreach (string assetBundle in assetBundles)
-                {
-                    string bundlePath = Path.Combine(bundlePackagePath, assetBundle);
-                    uint crc32 = VerifyHelper.GetFileCRC32(bundlePath);
-                    string info = assetBundle + "|" + VerifyHelper.GetFileLength(bundlePath) + "|" + crc32 + "\n";
-                    sb.Append(info);
-                }
-                sw.WriteLine(sb.ToString());
-            }
-        }
-        
     }
 }
