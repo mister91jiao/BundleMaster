@@ -284,7 +284,7 @@ namespace BM
             //开始打包
             string bundlePackagePath = Path.Combine(assetLoadTable.BuildBundlePath, assetsLoadSetting.BuildName);
             AssetBundleManifest manifest = BuildPipeline.BuildAssetBundles(bundlePackagePath, allAssetBundleBuild.ToArray(), 
-                BuildAssetBundleOptions.UncompressedAssetBundle, EditorUserBuildSettings.activeBuildTarget);
+                assetsLoadSetting.BuildAssetBundleOptions, EditorUserBuildSettings.activeBuildTarget);
             //保存未加密的版本号文件
             SaveBundleVersionFile(bundlePackagePath, manifest, assetsLoadSetting, false);
             //如果此分包需要加密就生成加密的资源
