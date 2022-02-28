@@ -53,6 +53,10 @@ namespace BM
                 asset = loadHandler.FileAssetBundle.LoadAsset<T>(assetPath);
                 loadHandler.Asset = asset;
             }
+            if (loadHandler.LoadState == LoadState.Finish)
+            {
+                asset = loadHandler.Asset as T;
+            }
             return asset;
         }
         
