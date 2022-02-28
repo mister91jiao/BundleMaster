@@ -53,13 +53,14 @@ namespace BM
                 string fileLogs = webRequest.downloadHandler.text;
                 Regex reg = new Regex(@"\<(.+?)>");
                 MatchCollection matchCollection = reg.Matches(fileLogs);
+                List<string> dependFileName = new List<string>();
                 foreach (Match m in matchCollection)
                 {
                     string[] fileLog = m.Groups[1].Value.Split('|');
                     LoadFile loadFile = new LoadFile();
                     loadFile.FilePath = fileLog[0];
                     loadFile.AssetBundleName = fileLog[1];
-                    List<string> dependFileName = new List<string>();
+                    
                     if (fileLog.Length > 2)
                     {
                         for (int i = 2; i < fileLog.Length; i++)
@@ -68,6 +69,7 @@ namespace BM
                         }
                     }
                     loadFile.DependFileName = dependFileName.ToArray();
+                    dependFileName.Clear();
                     bundleRuntimeInfo.LoadFileDic.Add(loadFile.FilePath, loadFile);
                 }
             }
