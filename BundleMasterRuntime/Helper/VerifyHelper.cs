@@ -32,13 +32,13 @@ namespace BM
             ETTask tcs = ETTask.Create(true);
             using (UnityWebRequest webRequest = UnityWebRequest.Get(filePath))
             {
+                webRequest.timeout = 0;
                 UnityWebRequestAsyncOperation weq = webRequest.SendWebRequest();
                 weq.completed += o =>
                 {
                     tcs.SetResult();
                 };
                 await tcs;
-                
 #if UNITY_2020_1_OR_NEWER
                 if (webRequest.result == UnityWebRequest.Result.Success)
 #else
@@ -89,7 +89,7 @@ namespace BM
         /// <summary>
         /// 异步获取解密的数据(无密钥的情况下直接获取数据)
         /// </summary>
-        public static async ETTask<byte[]> GetDecryptDataAsync(string filePath, WebLoadProgress loadProgress = null, char[] secretKey = null)
+        internal static async ETTask<byte[]> GetDecryptDataAsync(string filePath, WebLoadProgress loadProgress = null, char[] secretKey = null)
         {
             byte[] encryptData;
             ETTask tcs = ETTask.Create();
@@ -131,7 +131,7 @@ namespace BM
         /// <summary>
         /// 获取解密的数据(无密钥的情况下直接获取数据)
         /// </summary>
-        public static byte[] GetDecryptData(string filePath, char[] secretKey = null)
+        internal static byte[] GetDecryptData(string filePath, char[] secretKey = null)
         {
             byte[] encryptData;
             using (UnityWebRequest webRequest = UnityWebRequest.Get(filePath))
