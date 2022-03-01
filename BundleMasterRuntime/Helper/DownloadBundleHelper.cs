@@ -25,13 +25,12 @@ namespace BM
             {
                 webRequest.timeout = 5;
                 UnityWebRequestAsyncOperation webRequestAsync = webRequest.SendWebRequest();
-                ETTask waitDown = ETTask.Create();
+                ETTask waitDown = ETTask.Create(true);
                 webRequestAsync.completed += (asyncOperation) =>
                 {
                     waitDown.SetResult();
                 };
                 await waitDown;
-
 #if UNITY_2020_1_OR_NEWER
                 if (webRequest.result != UnityWebRequest.Result.Success)
 #else
