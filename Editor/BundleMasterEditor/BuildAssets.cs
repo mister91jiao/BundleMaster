@@ -279,6 +279,11 @@ namespace BM
             //添加文件以及依赖的bundle包
             AddToAssetBundleBuilds(assetsLoadSetting, allAssetBundleBuild, files);
             AddToAssetBundleBuilds(assetsLoadSetting, allAssetBundleBuild, compoundDepends);
+            if (!(allAssetBundleBuild.Count > 0))
+            {
+                AssetLogHelper.LogError("没有资源: " + assetsLoadSetting.BuildName);
+                return;
+            }
             //保存打包Log
             SaveLoadLog(assetLoadTable, assetsLoadSetting, loadFileDic, loadDependDic);
             //开始打包
