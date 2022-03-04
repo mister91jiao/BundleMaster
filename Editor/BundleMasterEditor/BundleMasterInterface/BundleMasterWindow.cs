@@ -653,7 +653,6 @@ namespace BM
                 AssetDatabase.SaveAssets();
             }
         }
-
         
         public void OnDestroy()
         {

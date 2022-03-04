@@ -105,7 +105,7 @@ namespace BM
         /// <summary>
         /// 获取场景AssetBundle加载的进度
         /// </summary>
-        internal float GetProgress()
+        public float GetProgress()
         {
             if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
             {
