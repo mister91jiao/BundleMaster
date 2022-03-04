@@ -4,15 +4,14 @@ using UnityEditor;
 
 namespace BM
 {
-    [InitializeOnLoad]
-    public class DevelopSceneChange
+    public static class DevelopSceneChange
     {
         /// <summary>
-        /// 每次脚本编译后执行, 用于检测在Develop模式下将场景加入BuildSettings, 如果不想每次编译后执行可以自己封装
+        /// 用于检测在Develop模式下将场景加入BuildSettings
         /// </summary>
-        static DevelopSceneChange() 
+        public static void CheckSceneChange(AssetLoadMode assetLoadMode) 
         {
-            AssetLoadTable assetLoadTable = AssetDatabase.LoadAssetAtPath<AssetLoadTable>(BuildAssets.AssetLoadTablePath);
+            AssetLoadTable assetLoadTable = AssetDatabase.LoadAssetAtPath<AssetLoadTable>(BundleMasterWindow.AssetLoadTablePath);
             List<AssetsLoadSetting> assetsLoadSettings = assetLoadTable.AssetsLoadSettings;
             Dictionary<string, EditorBuildSettingsScene> editorBuildSettingsScenes = new Dictionary<string, EditorBuildSettingsScene>();
             for (int i = 0; i < assetLoadTable.InitScene.Count; i++)
@@ -23,12 +22,20 @@ namespace BM
                     editorBuildSettingsScenes.Add(scenePath, new EditorBuildSettingsScene(scenePath, true));
                 }
             }
-            if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
+            if (assetLoadMode == AssetLoadMode.Develop)
             {
                 foreach (AssetsLoadSetting assetsLoadSetting in assetsLoadSettings)
                 {
+                    if (assetsLoadSetting == null)
+                    {
+                        continue;
+                    }
                     foreach (SceneAsset sceneAsset in assetsLoadSetting.Scene)
                     {
+                        if (sceneAsset == null)
+                        {
+                            continue;
+                        }
                         string scenePath = AssetDatabase.GetAssetPath(sceneAsset);
                         if (!editorBuildSettingsScenes.ContainsKey(scenePath))
                         {
