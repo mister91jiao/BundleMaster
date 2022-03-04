@@ -23,7 +23,6 @@ namespace BM
         {
             using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
             {
-                webRequest.timeout = 5;
                 UnityWebRequestAsyncOperation webRequestAsync = webRequest.SendWebRequest();
                 ETTask waitDown = ETTask.Create(true);
                 webRequestAsync.completed += (asyncOperation) =>
