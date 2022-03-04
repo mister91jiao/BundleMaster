@@ -382,6 +382,7 @@ namespace BM
             {
                 filePath = filePath.Replace("/", "_");
                 filePath = filePath.Replace(".", "_");
+                filePath = filePath.Replace(" ", "+");
                 filePath = bundlePackageName + "_" + filePath;
                 filePath = filePath.ToLower();
             }

@@ -2,6 +2,7 @@
 using System.IO;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text;
 using ET;
 using UnityEngine.Networking;
 
@@ -447,7 +448,7 @@ namespace BM
 
         public async ETTask DownLoad()
         {
-            string url = Path.Combine(AssetComponentConfig.BundleServerUrl, PackegName, FileName);
+            string url = Path.Combine(AssetComponentConfig.BundleServerUrl, PackegName, UnityWebRequest.EscapeURL(FileName));
             byte[] data = await DownloadBundleHelper.DownloadDataByUrl(url);
             using (FileStream fs = new FileStream(Path.Combine(DownLoadPackagePath, FileName), FileMode.Create))
             {
