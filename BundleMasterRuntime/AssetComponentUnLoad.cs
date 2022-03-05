@@ -49,6 +49,29 @@ namespace BM
         }
         
         /// <summary>
+        /// 卸载所有没卸载的资源
+        /// </summary>
+        public static void UnLoadAllAssets()
+        {
+            if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
+            {
+                AssetLogHelper.Log("AssetLoadMode = Develop 不需要卸载");
+                return;
+            }
+            BundleRuntimeInfo[] bundleRuntimeInfos = BundleNameToRuntimeInfo.Values.ToArray();
+            for (int i = 0; i < bundleRuntimeInfos.Length; i++)
+            {
+                LoadHandler[] loadHandlers = bundleRuntimeInfos[i].AllAssetLoadHandler.Values.ToArray();
+                for (int j = 0; j < loadHandlers.Length; j++)
+                {
+                    loadHandlers[j].UnLoad();
+                }
+                bundleRuntimeInfos[i].AllAssetLoadHandler.Clear();
+            }
+            BundleNameToRuntimeInfo.Clear();
+        }
+        
+        /// <summary>
         /// 添加进预卸载池
         /// </summary>
         internal static void AddPreUnLoadPool(LoadBase loadBase)
@@ -72,7 +95,7 @@ namespace BM
         }
         
         /// <summary>
-        /// 强制卸载所有待卸载的资源
+        /// 强制卸载所有待卸载的资源，注意是待卸载
         /// </summary>
         public static void ForceUnLoadAll()
         {
