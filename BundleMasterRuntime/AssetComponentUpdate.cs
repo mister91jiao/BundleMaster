@@ -161,7 +161,7 @@ namespace BM
             //判断StreamingAsset下资源
             string streamingAssetLogPath = Path.Combine(AssetComponentConfig.LocalBundlePath, bundlePackageName, "VersionLogs.txt");
 #if UNITY_IOS || UNITY_EDITOR_OSX || UNITY_STANDALONE_OSX
-            streamingAssetLogPath = "file://" + path;
+            streamingAssetLogPath = "file://" + streamingAssetLogPath;
 #endif
             ETTask streamingLogTcs = ETTask.Create();
             string streamingLog;
@@ -176,7 +176,7 @@ namespace BM
 #if UNITY_2020_1_OR_NEWER
                 if (webRequest.result != UnityWebRequest.Result.Success)
 #else
-                    if (!string.IsNullOrEmpty(webRequest.error))
+                if (!string.IsNullOrEmpty(webRequest.error))
 #endif
                 {
                     streamingLog = "INIT|0";
