@@ -1,5 +1,8 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Text;
 using ET;
 using UnityEngine.Networking;
 
@@ -10,8 +13,8 @@ namespace BM
         /// <summary>
         /// 检查分包是否需要更新
         /// </summary>
-        /// <param name="bundlePackageNames">所有分包的名称</param>
-        public static async ETTask<UpdateBundleDataInfo> CheckAllBundlePackageUpdate(List<string> bundlePackageNames)
+        /// <param name="bundlePackageNames">所有分包的名称以及是否验证文件CRC</param>
+        public static async ETTask<UpdateBundleDataInfo> CheckAllBundlePackageUpdate(Dictionary<string, bool> bundlePackageNames)
         {
             UpdateBundleDataInfo updateBundleDataInfo = new UpdateBundleDataInfo();
             if (AssetComponentConfig.AssetLoadMode != AssetLoadMode.Build)
@@ -29,22 +32,68 @@ namespace BM
                 }
                 return updateBundleDataInfo;
             }
-            
-            for (int i = 0; i < bundlePackageNames.Count; i++)
+            updateBundleDataInfo.UpdateTime = DateTime.Now.ToString(CultureInfo.CurrentCulture);
+            //开始处理每个分包的更新信息
+            foreach (var bundlePackageInfo in bundlePackageNames)
             {
-                string bundlePackageName = bundlePackageNames[i];
+                string bundlePackageName = bundlePackageInfo.Key;
                 string remoteVersionLog = await GetRemoteBundlePackageVersionLog(bundlePackageName);
                 if (remoteVersionLog == null)
                 {
                     continue;
                 }
-                //创建记录需要更新的Bundle的信息
-                List<string> allRemoteVersionFiles = new List<string>();
-                updateBundleDataInfo.PackageAllRemoteVersionFile.Add(bundlePackageName, allRemoteVersionFiles);
-                string localVersionLog;
+                //创建各个分包对应的文件夹
+                if (!Directory.Exists(Path.Combine(AssetComponentConfig.HotfixPath, bundlePackageName)))
+                {
+                    Directory.CreateDirectory(Path.Combine(AssetComponentConfig.HotfixPath, bundlePackageName));
+                }
+                //获取CRCLog
+                string crcLogPath = Path.Combine(AssetComponentConfig.HotfixPath, bundlePackageName, "CRCLog.txt");
+                updateBundleDataInfo.PackageCRCDictionary.Add(bundlePackageName, new Dictionary<string, uint>());
+                if (File.Exists(crcLogPath))
+                {
+                    using (StringReader stringReader = new StringReader(crcLogPath))
+                    {
+                        string crcLog = await stringReader.ReadToEndAsync();
+                        string[] crcLogData = crcLog.Split('\n');
+                        for (int j = 0; j < crcLogData.Length; j++)
+                        {
+                            string crcLine = crcLogData[j];
+                            if (string.IsNullOrWhiteSpace(crcLine))
+                            {
+                                continue;
+                            }
+                            string[] info = crcLine.Split('|');
+                            if (info.Length != 3)
+                            {
+                                continue;
+                            }
+                            if (!uint.TryParse(info[1], out uint crc))
+                            {
+                                continue;
+                            }
+                            //如果存在重复就覆盖
+                            if (updateBundleDataInfo.PackageCRCDictionary[bundlePackageName].ContainsKey(info[0]))
+                            {
+                                updateBundleDataInfo.PackageCRCDictionary[bundlePackageName][info[0]] = crc;
+                            }
+                            else
+                            {
+                                updateBundleDataInfo.PackageCRCDictionary[bundlePackageName].Add(info[0], crc);
+                            }
+                            
+                        }
+                    }
+                }
+                else
+                {
+                    CreateUpdateLogFile(crcLogPath, null);
+                }
+                updateBundleDataInfo.PackageCRCFile.Add(bundlePackageName, new StreamWriter(crcLogPath, true));
                 //获取本地的VersionLog
                 string localVersionLogExistPath = BundleFileExistPath(bundlePackageName, "VersionLogs.txt");
                 ETTask logTcs = ETTask.Create();
+                string localVersionLog;
                 using (UnityWebRequest webRequest = UnityWebRequest.Get(localVersionLogExistPath))
                 {
                     UnityWebRequestAsyncOperation weq = webRequest.SendWebRequest();
@@ -56,7 +105,7 @@ namespace BM
 #if UNITY_2020_1_OR_NEWER
                     if (webRequest.result != UnityWebRequest.Result.Success)
 #else
-                if (!string.IsNullOrEmpty(webRequest.error))
+                    if (!string.IsNullOrEmpty(webRequest.error))
 #endif
                     {
                         localVersionLog = "INIT|0";
@@ -66,30 +115,42 @@ namespace BM
                         localVersionLog = webRequest.downloadHandler.text;
                     }
                 }
-                Dictionary<string, long> needUpdateBundlesInfo = GetNeedUpdateBundle(bundlePackageName, remoteVersionLog, localVersionLog, allRemoteVersionFiles);
-                updateBundleDataInfo.PackageNeedUpdateBundlesInfos.Add(bundlePackageName, needUpdateBundlesInfo);
-                foreach (long needUpdateBundleSize in needUpdateBundlesInfo.Values)
+
+                if (bundlePackageInfo.Value)
                 {
-                    updateBundleDataInfo.NeedUpdateSize += needUpdateBundleSize;
-                    updateBundleDataInfo.NeedDownLoadBundleCount++;
+                    await CalcNeedUpdateBundleFileCRC(updateBundleDataInfo, bundlePackageName, remoteVersionLog, localVersionLog);
+                }
+                else
+                {
+                    await CalcNeedUpdateBundle(updateBundleDataInfo, bundlePackageName, remoteVersionLog, localVersionLog);
                 }
             }
             if (updateBundleDataInfo.NeedUpdateSize > 0)
             {
                 updateBundleDataInfo.NeedUpdate = true;
             }
+            else
+            {
+                foreach (StreamWriter sw in updateBundleDataInfo.PackageCRCFile.Values)
+                {
+                    sw.Close();
+                    sw.Dispose();
+                }
+                updateBundleDataInfo.PackageCRCFile.Clear();
+            }
             return updateBundleDataInfo;
         }
         
         /// <summary>
-        /// 获取所哟需要更新的Bundle的文件
+        /// 获取所哟需要更新的Bundle的文件(不检查文件CRC)
         /// </summary>
-        private static Dictionary<string, long> GetNeedUpdateBundle(string bundlePackageName, string remoteVersionLog, string localVersionLog, List<string> allRemoteVersionFiles)
+        private static async ETTask CalcNeedUpdateBundle(UpdateBundleDataInfo updateBundleDataInfo, string bundlePackageName, string remoteVersionLog, string localVersionLog)
         {
             string[] remoteVersionData = remoteVersionLog.Split('\n');
             string[] localVersionData = localVersionLog.Split('\n');
             int remoteVersion = int.Parse(remoteVersionData[0].Split('|')[1]);
             int localVersion = int.Parse(localVersionData[0].Split('|')[1]);
+            updateBundleDataInfo.PackageToVersion.Add(bundlePackageName, new int[2]{localVersion, remoteVersion});
             if (localVersion > remoteVersion)
             {
                 AssetLogHelper.LogError("本地版本号优先与远程版本号 " + localVersion + ">" + remoteVersion + "\n"
@@ -97,48 +158,184 @@ namespace BM
                 + "remoteBundleTime: " + remoteVersionData[0].Split('|')[0] + "\n"
                 + "Note: 发送了版本回退或者忘了累进版本号");
             }
-            HashSet<string> allLocalBundleName = new HashSet<string>();
+            //判断StreamingAsset下资源
+            string streamingAssetLogPath = Path.Combine(AssetComponentConfig.LocalBundlePath, bundlePackageName, "VersionLogs.txt");
+#if UNITY_IOS || UNITY_EDITOR_OSX || UNITY_STANDALONE_OSX
+            streamingAssetLogPath = "file://" + streamingAssetLogPath;
+#endif
+            ETTask streamingLogTcs = ETTask.Create();
+            string streamingLog;
+            using (UnityWebRequest webRequest = UnityWebRequest.Get(streamingAssetLogPath))
+            {
+                UnityWebRequestAsyncOperation weq = webRequest.SendWebRequest();
+                weq.completed += (o) =>
+                {
+                    streamingLogTcs.SetResult();
+                };
+                await streamingLogTcs;
+#if UNITY_2020_1_OR_NEWER
+                if (webRequest.result != UnityWebRequest.Result.Success)
+#else
+                if (!string.IsNullOrEmpty(webRequest.error))
+#endif
+                {
+                    streamingLog = "INIT|0";
+                }
+                else
+                {
+                    streamingLog = webRequest.downloadHandler.text;
+                }
+            }
+            //添加streaming文件CRC信息
+            Dictionary<string, uint> streamingCRC = new Dictionary<string, uint>();
+            string[] streamingLogData = streamingLog.Split('\n');
+            for (int i = 1; i < streamingLogData.Length; i++)
+            {
+                string streamingDataLine = streamingLogData[i];
+                if (!string.IsNullOrWhiteSpace(streamingDataLine))
+                {
+                    string[] info = streamingDataLine.Split('|');
+                    uint crc = uint.Parse(info[2]);
+                    if (!updateBundleDataInfo.PackageCRCDictionary[bundlePackageName].ContainsKey(info[0]))
+                    {
+                        updateBundleDataInfo.PackageCRCDictionary[bundlePackageName].Add(info[0], crc);
+                    }
+                    streamingCRC.Add(info[0], crc);
+                }
+            }
+            //添加本地文件CRC信息
             for (int i = 1; i < localVersionData.Length; i++)
             {
-                string lineStr = localVersionData[i];
-                if (string.IsNullOrWhiteSpace(lineStr))
+                string localVersionDataLine = localVersionData[i];
+                if (!string.IsNullOrWhiteSpace(localVersionDataLine))
                 {
-                    continue;
+                    string[] info = localVersionDataLine.Split('|');
+                    if (updateBundleDataInfo.PackageCRCDictionary[bundlePackageName].ContainsKey(info[0]))
+                    {
+                        updateBundleDataInfo.PackageCRCDictionary[bundlePackageName][info[0]] = uint.Parse(info[2]);
+                    }
+                    else
+                    {
+                        updateBundleDataInfo.PackageCRCDictionary[bundlePackageName].Add(info[0], uint.Parse(info[2]));
+                    }
                 }
-                string[] info = lineStr.Split('|');
-                allLocalBundleName.Add(info[0]);
             }
             //创建最后需要返回的数据
             Dictionary<string, long> needUpdateBundles = new Dictionary<string, long>();
             for (int i = 1; i < remoteVersionData.Length; i++)
             {
-                string lineStr = remoteVersionData[i];
-                if (string.IsNullOrWhiteSpace(lineStr))
+                string remoteVersionDataLine = remoteVersionData[i];
+                if (!string.IsNullOrWhiteSpace(remoteVersionDataLine))
                 {
-                    continue;
+                    string[] info = remoteVersionDataLine.Split('|');
+                    if (updateBundleDataInfo.PackageCRCDictionary[bundlePackageName].TryGetValue(info[0], out uint crc))
+                    {
+                        if (crc == uint.Parse(info[2]))
+                        {
+                            if (streamingCRC.TryGetValue(info[0], out uint streamingCrc))
+                            {
+                                if (crc != streamingCrc)
+                                {
+                                    if (!File.Exists(Path.Combine(AssetComponentConfig.HotfixPath, bundlePackageName, info[0])))
+                                    {
+                                        needUpdateBundles.Add(info[0], long.Parse(info[1]));
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                if (!File.Exists(Path.Combine(AssetComponentConfig.HotfixPath, bundlePackageName, info[0])))
+                                {
+                                    needUpdateBundles.Add(info[0], long.Parse(info[1]));
+                                }
+                            }
+                            continue;
+                        }
+                    }
+                    needUpdateBundles.Add(info[0], long.Parse(info[1]));
                 }
-                string[] info = lineStr.Split('|');
-                allRemoteVersionFiles.Add(info[0]);
-                if (allLocalBundleName.Contains(info[0]))
+            }
+            updateBundleDataInfo.PackageNeedUpdateBundlesInfos.Add(bundlePackageName, needUpdateBundles);
+            foreach (long needUpdateBundleSize in needUpdateBundles.Values)
+            {
+                updateBundleDataInfo.NeedUpdateSize += needUpdateBundleSize;
+                updateBundleDataInfo.NeedDownLoadBundleCount++;
+            }
+        }
+        
+        /// <summary>
+        /// 获取所有需要更新的Bundle的文件(计算文件CRC)
+        /// </summary>
+        private static async ETTask CalcNeedUpdateBundleFileCRC(UpdateBundleDataInfo updateBundleDataInfo, string bundlePackageName, string remoteVersionLog, string localVersionLog)
+        {
+            string[] remoteVersionData = remoteVersionLog.Split('\n');
+            string[] localVersionData = localVersionLog.Split('\n');
+            int remoteVersion = int.Parse(remoteVersionData[0].Split('|')[1]);
+            int localVersion = int.Parse(localVersionData[0].Split('|')[1]);
+            updateBundleDataInfo.PackageToVersion.Add(bundlePackageName, new int[2]{localVersion, remoteVersion});
+            if (localVersion > remoteVersion)
+            {
+                AssetLogHelper.LogError("本地版本号优先与远程版本号 " + localVersion + ">" + remoteVersion + "\n"
+                + "localBundleTime: " + localVersionData[0].Split('|')[0] + "\n"
+                + "remoteBundleTime: " + remoteVersionData[0].Split('|')[0] + "\n"
+                + "Note: 发送了版本回退或者忘了累进版本号");
+            }
+            //创建最后需要返回的数据
+            Dictionary<string, long> needUpdateBundles = new Dictionary<string, long>();
+            _checkCount = remoteVersionData.Length - 1;
+            Queue<int> loopQueue = new Queue<int>();
+            //loopSize依据资源大小调节, 如果资源太大loopSize也调很大, 会撑爆内存, 调大只会节约一点点时间(目的是如果有进度条每个循环更新一下进度条)
+            int loopSize = 5;
+            for (int i = 0; i < _checkCount / loopSize; i++)
+            {
+                loopQueue.Enqueue(loopSize);
+            }
+            if (_checkCount % loopSize > 0)
+            {
+                loopQueue.Enqueue(_checkCount % loopSize);
+            }
+            int loop = loopQueue.Count;
+            for (int i = 0; i < loop; i++)
+            {
+                _checkCount = loopQueue.Dequeue();
+                int count = _checkCount;
+                ETTask finishTcs = ETTask.Create();
+                for (int j = 0; j < count; j++)
                 {
-                    string filePath = BundleFileExistPath(bundlePackageName, info[0]);
-                    if (filePath == null)
-                    {
-                        needUpdateBundles.Add(info[0], long.Parse(info[1]));
-                        continue;
-                    }
-                    uint fileCRC32 = VerifyHelper.GetFileCRC32(filePath);
-                    if (uint.Parse(info[2]) != fileCRC32)
-                    {
-                        needUpdateBundles.Add(info[0], long.Parse(info[1]));
-                    }
+                    CheckFileCRC(remoteVersionData[i * loopSize + j + 1], bundlePackageName, needUpdateBundles, finishTcs).Coroutine();
                 }
-                else
+                await finishTcs;
+                _checkCount = 0;
+            }
+            updateBundleDataInfo.PackageNeedUpdateBundlesInfos.Add(bundlePackageName, needUpdateBundles);
+            foreach (long needUpdateBundleSize in needUpdateBundles.Values)
+            {
+                updateBundleDataInfo.NeedUpdateSize += needUpdateBundleSize;
+                updateBundleDataInfo.NeedDownLoadBundleCount++;
+            }
+        }
+
+        private static int _checkCount = 0;
+
+        private static async ETTask CheckFileCRC(string remoteVersionDataLine, string bundlePackageName, Dictionary<string, long> needUpdateBundles, ETTask finishTcs)
+        {
+            if (!string.IsNullOrWhiteSpace(remoteVersionDataLine))
+            {
+                string[] info = remoteVersionDataLine.Split('|');
+                //如果文件不存在直接加入更新
+                string filePath = BundleFileExistPath(bundlePackageName, info[0]);
+                uint fileCRC32 = await VerifyHelper.GetFileCRC32(filePath);
+                //判断是否和远程一样, 不一样直接加入更新
+                if (uint.Parse(info[2]) != fileCRC32)
                 {
                     needUpdateBundles.Add(info[0], long.Parse(info[1]));
                 }
             }
-            return needUpdateBundles;
+            _checkCount--;
+            if (_checkCount <= 0)
+            {
+                finishTcs.SetResult();
+            }
         }
         
         /// <summary>
@@ -190,6 +387,13 @@ namespace BM
                 }
             }
             await downLoading;
+            //下载完成关闭CRCLog文件
+            foreach (StreamWriter sw in updateBundleDataInfo.PackageCRCFile.Values)
+            {
+                sw.Close();
+                sw.Dispose();
+            }
+            updateBundleDataInfo.PackageCRCFile.Clear();
             //所有分包都下载完成了就处理分包的Log文件
             foreach (string packageName in updateBundleDataInfo.PackageNeedUpdateBundlesInfos.Keys)
             {
@@ -208,7 +412,6 @@ namespace BM
                 CreateUpdateLogFile(Path.Combine(AssetComponentConfig.HotfixPath, packageName, "VersionLogs.txt"),
                     System.Text.Encoding.UTF8.GetString(versionLogsData));
             }
-            
             AssetLogHelper.LogError("下载完成");
         }
         
@@ -245,13 +448,22 @@ namespace BM
 
         public async ETTask DownLoad()
         {
-            string url = Path.Combine(AssetComponentConfig.BundleServerUrl, PackegName, FileName);
+            string url = Path.Combine(AssetComponentConfig.BundleServerUrl, PackegName, UnityWebRequest.EscapeURL(FileName));
             byte[] data = await DownloadBundleHelper.DownloadDataByUrl(url);
             using (FileStream fs = new FileStream(Path.Combine(DownLoadPackagePath, FileName), FileMode.Create))
             {
-                fs.Write(data, 0, data.Length);
+                //大于2M用异步
+                if (data.Length > 2097152)
+                {
+                    await fs.WriteAsync(data, 0, data.Length);
+                }
+                else
+                {
+                    fs.Write(data, 0, data.Length);
+                }
                 fs.Close();
             }
+            UpdateBundleDataInfo.AddCRCFileInfo(PackegName, FileName, VerifyHelper.GetCRC32(data));
             UpdateBundleDataInfo.FinishUpdateSize += data.Length;
             UpdateBundleDataInfo.FinishDownLoadBundleCount++;
             foreach (Queue<DownLoadTask> downLoadTaskQueue in PackageDownLoadTask.Values)
@@ -270,6 +482,5 @@ namespace BM
             UpdateBundleDataInfo.FinishUpdate = true;
             DownLoadingKey.SetResult();
         }
-        
     }
 }

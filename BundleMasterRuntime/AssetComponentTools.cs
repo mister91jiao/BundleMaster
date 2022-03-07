@@ -15,7 +15,7 @@ namespace BM
             if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Local)
             {
                 string path = Path.Combine(AssetComponentConfig.LocalBundlePath, bundlePackageName, fileName);
-#if UNITY_IOS
+#if UNITY_IOS || UNITY_EDITOR_OSX || UNITY_STANDALONE_OSX
                 path = "file://" + path;
 #endif
                 return path;
@@ -26,7 +26,7 @@ namespace BM
                 if (!File.Exists(path))
                 {
                     path = Path.Combine(AssetComponentConfig.LocalBundlePath, bundlePackageName, fileName);
-#if UNITY_IOS
+#if UNITY_IOS || UNITY_EDITOR_OSX || UNITY_STANDALONE_OSX
                     path = "file://" + path;
 #endif
                 }
@@ -57,7 +57,7 @@ namespace BM
         /// </summary>
         /// <param name="filePath">文件的全路径</param>
         /// <param name="fileData">文件的内容</param>
-        internal static void CreateUpdateLogFile(string filePath, string fileData)
+        private static void CreateUpdateLogFile(string filePath, string fileData)
         {
             using (StreamWriter sw = new StreamWriter(filePath))
             {
@@ -84,12 +84,27 @@ namespace BM
         /// <summary>
         /// 需要更新的Bundle的信息
         /// </summary>
-        public readonly Dictionary<string, Dictionary<string, long>> PackageNeedUpdateBundlesInfos = new Dictionary<string, Dictionary<string, long>>();
+        internal readonly Dictionary<string, Dictionary<string, long>> PackageNeedUpdateBundlesInfos = new Dictionary<string, Dictionary<string, long>>();
 
         /// <summary>
-        /// 需要更新的分包的版本索引列表文件
+        /// 分包对应的版本号    int[本地版本, 远程版本] 仅Build模式可用
         /// </summary>
-        public readonly Dictionary<string, List<string>> PackageAllRemoteVersionFile = new Dictionary<string, List<string>>();
+        internal readonly Dictionary<string, int[]> PackageToVersion = new Dictionary<string, int[]>();
+
+        /// <summary>
+        /// 客户端更新时间
+        /// </summary>
+        internal string UpdateTime = "";
+        
+        /// <summary>
+        /// CRC信息字典
+        /// </summary>
+        internal readonly Dictionary<string, Dictionary<string, uint>> PackageCRCDictionary = new Dictionary<string, Dictionary<string, uint>>();
+        
+        /// <summary>
+        /// CRC对应的写入流
+        /// </summary>
+        internal readonly Dictionary<string, StreamWriter> PackageCRCFile = new Dictionary<string, StreamWriter>();
         
         /// <summary>
         /// 更新完成的大小
@@ -122,5 +137,46 @@ namespace BM
         /// 下载完成的Bundle的数量
         /// </summary>
         public int FinishDownLoadBundleCount = 0;
+
+        /// <summary>
+        /// 获取更新的分包的版本索引    int[本地版本, 远程版本]
+        /// </summary>
+        public int[] GetVersion(string bundlePackageName)
+        {
+            if (AssetComponentConfig.AssetLoadMode != AssetLoadMode.Build)
+            {
+                AssetLogHelper.LogError("仅Build模式可用获取版本索引");
+                return null;
+            }
+            if (!PackageToVersion.TryGetValue(bundlePackageName, out int[] versionData))
+            {
+                AssetLogHelper.LogError("获取索引号没有找到分包: " + bundlePackageName);
+                return null;
+            }
+            return versionData;
+        }
+
+        /// <summary>
+        /// 添加一个更新好的CRC文件信息
+        /// </summary>
+        internal void AddCRCFileInfo(string bundlePackageName, string fileName, uint crc)
+        {
+            if (AssetComponentConfig.AssetLoadMode != AssetLoadMode.Build)
+            {
+                AssetLogHelper.LogError("AssetLoadMode != Build 不涉及更新");
+                return;
+            }
+            if (!PackageCRCDictionary.TryGetValue(bundlePackageName, out Dictionary<string, uint> crcDictionary))
+            {
+                AssetLogHelper.LogError("获取索引号没有找到分包: " + bundlePackageName);
+                return;
+            }
+            if (!crcDictionary.ContainsKey(fileName))
+            {
+                crcDictionary.Add(fileName, crc);
+            }
+            PackageCRCFile[bundlePackageName].WriteLine(fileName + "|" + crc.ToString() + "|" + UpdateTime);
+            PackageCRCFile[bundlePackageName].Flush();
+        }
     }
 }

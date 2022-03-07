@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -9,31 +10,12 @@ namespace BM
 {
     public class BuildAssets : EditorWindow
     {
-        /// <summary>
-        /// 分包配置文件资源目录
-        /// </summary>
-        public static string AssetLoadTablePath = "Assets/Editor/BundleMasterEditor/BuildSettings/AssetLoadTable.asset";
-        
-        [MenuItem("Tools/BuildAsset/创建分包总索引文件")]
-        //[MenuItem("Assets/Create/BuildAsset/创建分包总索引文件")]
-        public static void CreateBundleTableSetting()
-        {
-            AssetLoadTable assetLoadTable = ScriptableObject.CreateInstance<AssetLoadTable>();
-            AssetDatabase.CreateAsset(assetLoadTable, AssetLoadTablePath);
-        }
-        
-        [MenuItem("Tools/BuildAsset/创建分包配置文件")]
-        //[MenuItem("Assets/Create/BuildAsset/创建分包配置文件")]
-        public static void CreateSingleSetting()
-        {
-            AssetsLoadSetting assetsLoadSetting = ScriptableObject.CreateInstance<AssetsLoadSetting>();
-            AssetDatabase.CreateAsset(assetsLoadSetting, "Assets/Editor/BundleMasterEditor/BuildSettings/AssetsLoadSetting.asset");
-        }
-
         [MenuItem("Tools/BuildAsset/构建AssetBundle")]
         public static void BuildAllBundle()
         {
-            AssetLoadTable assetLoadTable = AssetDatabase.LoadAssetAtPath<AssetLoadTable>(AssetLoadTablePath);
+            Stopwatch sw = new Stopwatch();
+            sw.Start();
+            AssetLoadTable assetLoadTable = AssetDatabase.LoadAssetAtPath<AssetLoadTable>(BundleMasterWindow.AssetLoadTablePath);
             List<AssetsLoadSetting> assetsLoadSettings = assetLoadTable.AssetsLoadSettings;
             //开始构建前剔除多余场景
             List<EditorBuildSettingsScene> editorBuildSettingsScenes = new List<EditorBuildSettingsScene>();
@@ -64,14 +46,16 @@ namespace BM
                 AssetDatabase.Refresh();
             }
             //构建完成后索引自动+1 需要自己取消注释
-            // foreach (AssetsLoadSetting assetsLoadSetting in assetLoadTable.AssetsLoadSettings)
+            // foreach (string guid in AssetDatabase.FindAssets($"t:{nameof(AssetsLoadSetting)}"))
             // {
+            //     AssetsLoadSetting assetsLoadSetting = AssetDatabase.LoadAssetAtPath<AssetsLoadSetting>(AssetDatabase.GUIDToAssetPath(guid));
             //     assetsLoadSetting.BuildIndex++;
             //     EditorUtility.SetDirty(assetsLoadSetting);
             // }
-            // AssetDatabase.SaveAssets();
+            AssetDatabase.SaveAssets();
             //打包结束
-            AssetLogHelper.Log("打包结束\n" + assetLoadTable.BuildBundlePath);
+            sw.Stop();
+            AssetLogHelper.Log("打包结束, 耗时" + sw.Elapsed.TotalMilliseconds + " ms \n" + assetLoadTable.BuildBundlePath);
         }
         
         [MenuItem("Tools/BuildAsset/Copy资源到StreamingAssets")]
@@ -82,7 +66,7 @@ namespace BM
                 Directory.CreateDirectory(Application.streamingAssetsPath);
             }
             DeleteHelper.DeleteDir(Application.streamingAssetsPath);
-            AssetLoadTable assetLoadTable = AssetDatabase.LoadAssetAtPath<AssetLoadTable>(AssetLoadTablePath);
+            AssetLoadTable assetLoadTable = AssetDatabase.LoadAssetAtPath<AssetLoadTable>(BundleMasterWindow.AssetLoadTablePath);
             foreach (AssetsLoadSetting assetsLoadSetting in assetLoadTable.AssetsLoadSettings)
             {
                 string assetPathFolder;
@@ -148,7 +132,10 @@ namespace BM
             {
                 SceneAsset sceneAsset = sceneAssets[i];
                 string scenePath = AssetDatabase.GetAssetPath(sceneAsset);
-                files.Add(scenePath);
+                if (!files.Contains(scenePath))
+                {
+                    files.Add(scenePath);
+                }
             }
             //分析所有需要主动加载的资源
             List<string> needRemoveFile = new List<string>();
@@ -275,12 +262,17 @@ namespace BM
             //添加文件以及依赖的bundle包
             AddToAssetBundleBuilds(assetsLoadSetting, allAssetBundleBuild, files);
             AddToAssetBundleBuilds(assetsLoadSetting, allAssetBundleBuild, compoundDepends);
+            if (!(allAssetBundleBuild.Count > 0))
+            {
+                AssetLogHelper.LogError("没有资源: " + assetsLoadSetting.BuildName);
+                return;
+            }
             //保存打包Log
             SaveLoadLog(assetLoadTable, assetsLoadSetting, loadFileDic, loadDependDic);
             //开始打包
             string bundlePackagePath = Path.Combine(assetLoadTable.BuildBundlePath, assetsLoadSetting.BuildName);
             AssetBundleManifest manifest = BuildPipeline.BuildAssetBundles(bundlePackagePath, allAssetBundleBuild.ToArray(), 
-                BuildAssetBundleOptions.UncompressedAssetBundle, EditorUserBuildSettings.activeBuildTarget);
+                assetsLoadSetting.BuildAssetBundleOptions, EditorUserBuildSettings.activeBuildTarget);
             //保存未加密的版本号文件
             SaveBundleVersionFile(bundlePackagePath, manifest, assetsLoadSetting, false);
             //如果此分包需要加密就生成加密的资源
@@ -371,7 +363,7 @@ namespace BM
                 foreach (string assetBundle in assetBundles)
                 {
                     string bundlePath = Path.Combine(bundlePackagePath, assetBundle);
-                    uint crc32 = VerifyHelper.GetFileCRC32(bundlePath);
+                    uint crc32 = VerifyHelper.GetCRC32(File.ReadAllBytes(bundlePath));
                     string info = assetBundle + "|" + VerifyHelper.GetFileLength(bundlePath) + "|" + crc32 + "\n";
                     sb.Append(info);
                 }
@@ -390,6 +382,7 @@ namespace BM
             {
                 filePath = filePath.Replace("/", "_");
                 filePath = filePath.Replace(".", "_");
+                filePath = filePath.Replace(" ", "+");
                 filePath = bundlePackageName + "_" + filePath;
                 filePath = filePath.ToLower();
             }

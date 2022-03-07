@@ -4,12 +4,12 @@ using ET;
 
 namespace BM
 {
-    public class LoadHandler<T> : LoadHandlerBase where T : UnityEngine.Object
+    public class LoadHandler : LoadHandlerBase
     {
         /// <summary>
         /// 加载出来的资源
         /// </summary>
-        public T Asset = null;
+        public UnityEngine.Object Asset = null;
         
         /// <summary>
         /// File文件AssetBundle的引用
@@ -30,12 +30,24 @@ namespace BM
         /// 依赖的其它File包
         /// </summary>
         private List<LoadFile> _loadDependFiles = new List<LoadFile>();
-    
-        public LoadHandler(string assetPath, string bundlePackageName)
+
+        /// <summary>
+        /// 加载的状态
+        /// </summary>
+        internal LoadState LoadState = LoadState.NoLoad;
+        
+        /// <summary>
+        /// 异步等待加载的Task
+        /// </summary>
+        internal List<ETTask> AwaitEtTasks = new List<ETTask>();
+
+        internal void Init(string assetPath, string bundlePackageName)
         {
             AssetPath = assetPath;
             UniqueId = HandlerIdHelper.GetUniqueId();
             BundlePackageName = bundlePackageName;
+            LoadState = LoadState.NoLoad;
+            UnloadFinish = false;
             if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
             {
                 //Develop模式直接返回就行
@@ -69,7 +81,7 @@ namespace BM
         /// <summary>
         /// 同步加载所有的Bundle
         /// </summary>
-        public void Load()
+        internal void Load()
         {
             _loadFile.LoadAssetBundle(BundlePackageName);
             for (int i = 0; i < _loadDepends.Count; i++)
@@ -81,13 +93,15 @@ namespace BM
                 _loadDependFiles[i].LoadAssetBundle(BundlePackageName);
             }
             FileAssetBundle = _loadFile.AssetBundle;
+            LoadState = LoadState.Finish;
         }
 
         /// <summary>
         /// 异步加载所有的Bundle
         /// </summary>
-        public async ETTask LoadAsync()
+        internal async ETTask LoadAsync()
         {
+            LoadState = LoadState.Loading;
             //计算出所有需要加载的Bundle包的总数
             RefLoadFinishCount = _loadDepends.Count + _loadDependFiles.Count + 1;
             ETTask tcs = ETTask.Create(true);
@@ -101,7 +115,29 @@ namespace BM
                 LoadAsyncLoader(_loadDependFiles[i], tcs).Coroutine();
             }
             await tcs;
+            if (LoadState != LoadState.Finish)
+            {
+                LoadState = LoadState.Finish;
+                FileAssetBundle = _loadFile.AssetBundle;
+            }
+        }
+        
+        /// <summary>
+        /// 强制异步加载完成
+        /// </summary>
+        internal void ForceAsyncLoadFinish()
+        {
+            _loadFile.ForceLoadFinish(BundlePackageName);
+            for (int i = 0; i < _loadDepends.Count; i++)
+            {
+                _loadDepends[i].ForceLoadFinish(BundlePackageName);
+            }
+            for (int i = 0; i < _loadDependFiles.Count; i++)
+            {
+                _loadDependFiles[i].ForceLoadFinish(BundlePackageName);
+            }
             FileAssetBundle = _loadFile.AssetBundle;
+            LoadState = LoadState.Finish;
         }
         
         /// <summary>
@@ -111,6 +147,7 @@ namespace BM
         {
             Asset = null;
             FileAssetBundle = null;
+            LoadState = LoadState.NoLoad;
             foreach (LoadDepend loadDepends in _loadDepends)
             {
                 loadDepends.SubRefCount();
@@ -123,6 +160,20 @@ namespace BM
             _loadDependFiles.Clear();
             _loadFile.SubRefCount();
             _loadFile = null;
+            //从缓存里取出进池
+            if (!AssetComponent.BundleNameToRuntimeInfo.TryGetValue(BundlePackageName, out BundleRuntimeInfo bundleRuntimeInfo))
+            {
+                AssetLogHelper.LogError("没要找到分包的信息: " + BundlePackageName);
+                return;
+            }
+            if (!bundleRuntimeInfo.AllAssetLoadHandler.ContainsKey(AssetPath))
+            {
+                AssetLogHelper.LogError("没要找到缓存的LoadHandler: " + AssetPath);
+                return;
+            }
+            bundleRuntimeInfo.AllAssetLoadHandler.Remove(AssetPath);
+            //进池
+            LoadHandlerFactory.EnterPool(this);
         }
         
     }
