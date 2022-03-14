@@ -5,6 +5,11 @@ namespace BM
     public abstract class LoadHandlerBase
     {
         /// <summary>
+        /// 是否是通过路径加载的
+        /// </summary>
+        internal bool HaveHandler = true;
+        
+        /// <summary>
         /// 对应的加载的资源的路径
         /// </summary>
         protected string AssetPath;

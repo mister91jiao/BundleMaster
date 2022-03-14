@@ -7,6 +7,11 @@ namespace BM
     public class LoadHandler : LoadHandlerBase
     {
         /// <summary>
+        /// 是否进池
+        /// </summary>
+        private bool isPool;
+        
+        /// <summary>
         /// 加载出来的资源
         /// </summary>
         public UnityEngine.Object Asset = null;
@@ -41,13 +46,20 @@ namespace BM
         /// </summary>
         internal List<ETTask> AwaitEtTasks = new List<ETTask>();
 
-        internal void Init(string assetPath, string bundlePackageName)
+
+        internal LoadHandler(bool isPool)
+        {
+            this.isPool = isPool;
+        }
+        
+        internal void Init(string assetPath, string bundlePackageName, bool haveHandler)
         {
             AssetPath = assetPath;
             UniqueId = HandlerIdHelper.GetUniqueId();
             BundlePackageName = bundlePackageName;
             LoadState = LoadState.NoLoad;
             UnloadFinish = false;
+            HaveHandler = haveHandler;
             if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
             {
                 //Develop模式直接返回就行
@@ -166,14 +178,20 @@ namespace BM
                 AssetLogHelper.LogError("没要找到分包的信息: " + BundlePackageName);
                 return;
             }
-            if (!bundleRuntimeInfo.AllAssetLoadHandler.ContainsKey(AssetPath))
+            if (HaveHandler)
             {
-                AssetLogHelper.LogError("没要找到缓存的LoadHandler: " + AssetPath);
-                return;
+                if (!bundleRuntimeInfo.AllAssetLoadHandler.ContainsKey(AssetPath))
+                {
+                    AssetLogHelper.LogError("没要找到缓存的LoadHandler: " + AssetPath);
+                    return;
+                }
+                bundleRuntimeInfo.AllAssetLoadHandler.Remove(AssetPath);
             }
-            bundleRuntimeInfo.AllAssetLoadHandler.Remove(AssetPath);
-            //进池
-            LoadHandlerFactory.EnterPool(this);
+            if (isPool)
+            {
+                //进池
+                LoadHandlerFactory.EnterPool(this);
+            }
         }
         
     }

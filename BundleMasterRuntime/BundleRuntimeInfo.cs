@@ -60,10 +60,13 @@ namespace BM
         }
         
         public T Load<T>(string assetPath) where T : UnityEngine.Object => AssetComponent.Load<T>(assetPath, BundlePackageName);
+        public T Load<T>(out LoadHandler loadHandler, string assetPath, bool isPool = false) where T : UnityEngine.Object => AssetComponent.Load<T>(out loadHandler, assetPath, isPool, BundlePackageName);
         public UnityEngine.Object Load(string assetPath) => AssetComponent.Load(assetPath, BundlePackageName);
+        public UnityEngine.Object Load(out LoadHandler loadHandler, string assetPath, bool isPool = false) => AssetComponent.Load(out loadHandler, assetPath, isPool, BundlePackageName);
         public async ETTask<T> LoadAsync<T>(string assetPath) where T : UnityEngine.Object => await AssetComponent.LoadAsync<T>(assetPath, BundlePackageName);
+        public ETTask<T> LoadAsync<T>(out LoadHandler loadHandler, string assetPath, bool isPool = false) where T : UnityEngine.Object => AssetComponent.LoadAsync<T>(out loadHandler, assetPath, isPool, BundlePackageName);
         public async ETTask<UnityEngine.Object> LoadAsync(string assetPath) => await AssetComponent.LoadAsync(assetPath, BundlePackageName);
-        
+        public ETTask<UnityEngine.Object> LoadAsync(out LoadHandler loadHandler, string assetPath, bool isPool = false) => AssetComponent.LoadAsync(out loadHandler,assetPath, isPool, BundlePackageName);
         public LoadSceneHandler LoadScene(string scenePath) => AssetComponent.LoadScene(scenePath, BundlePackageName);
         public async ETTask<LoadSceneHandler> LoadSceneAsync(string scenePath) => await AssetComponent.LoadSceneAsync(scenePath, BundlePackageName);
         public ETTask LoadSceneAsync(out LoadSceneHandler loadSceneHandler, string scenePath) => AssetComponent.LoadSceneAsync(out loadSceneHandler, scenePath, BundlePackageName);
