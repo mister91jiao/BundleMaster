@@ -44,6 +44,27 @@ namespace BM
                 }
             }
         }
+
+        /// <summary>
+        /// 获取一个文件目录下的所有资源以及路径
+        /// </summary>
+        public static void GetOriginsPath(string originPath, HashSet<string> files, HashSet<string> dirs)
+        {
+            DirectoryInfo buildBundlePath = new DirectoryInfo(originPath);
+            FileSystemInfo[] fileSystemInfos = buildBundlePath.GetFileSystemInfos();
+            foreach (FileSystemInfo fileSystemInfo in fileSystemInfos)
+            {
+                if (fileSystemInfo is DirectoryInfo)
+                {
+                    dirs.Add(fileSystemInfo.FullName);
+                    GetOriginsPath(fileSystemInfo.FullName, files, dirs);
+                }
+                else
+                {
+                    files.Add(fileSystemInfo.FullName);
+                }
+            }
+        }
         
         /// <summary>
         /// 创建加密的AssetBundle

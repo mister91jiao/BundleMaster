@@ -90,6 +90,11 @@ namespace BM
         /// 分包对应的版本号    int[本地版本, 远程版本] 仅Build模式可用
         /// </summary>
         internal readonly Dictionary<string, int[]> PackageToVersion = new Dictionary<string, int[]>();
+        
+        /// <summary>
+        /// 分包以及对于的类型
+        /// </summary>
+        internal readonly Dictionary<string, PackageType> PackageToType = new Dictionary<string, PackageType>();
 
         /// <summary>
         /// 客户端更新时间
@@ -177,6 +182,25 @@ namespace BM
             }
             PackageCRCFile[bundlePackageName].WriteLine(fileName + "|" + crc.ToString() + "|" + UpdateTime);
             PackageCRCFile[bundlePackageName].Flush();
+        }
+
+        /// <summary>
+        /// 分包类型
+        /// </summary>
+        internal enum PackageType
+        {
+            /// <summary>
+            /// 未加密
+            /// </summary>
+            Normal,
+            /// <summary>
+            /// 加密
+            /// </summary>
+            Encrypt,
+            /// <summary>
+            /// 原始资源
+            /// </summary>
+            Origin,
         }
     }
 }

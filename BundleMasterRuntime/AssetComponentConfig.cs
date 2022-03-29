@@ -21,6 +21,11 @@ namespace BM
         /// 存放本地Bundle的位置 Application.streamingAssetsPath;
         /// </summary>
         public static string LocalBundlePath = Application.streamingAssetsPath;
+
+        /// <summary>
+        /// 资源服务器的地址 http://192.168.50.157/BundleData/
+        /// </summary>
+        public static string BundleServerUrl = "http://192.168.50.157/BundleData/";
         
         /// <summary>
         /// 默认加载的Bundle名
@@ -44,18 +49,6 @@ namespace BM
             {
                 InitRuntimeConfig();
                 return _bmRuntimeConfig.AssetLoadMode;
-            }
-        }
-
-        /// <summary>
-        /// 资源服务器的地址 http://192.168.50.157/BundleData/
-        /// </summary>
-        public static string BundleServerUrl
-        {
-            get
-            {
-                InitRuntimeConfig();
-                return _bmRuntimeConfig.BundleServerUrl;
             }
         }
 

@@ -2,7 +2,6 @@
 using System.IO;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Text;
 using ET;
 using UnityEngine.Networking;
 
@@ -148,9 +147,26 @@ namespace BM
         {
             string[] remoteVersionData = remoteVersionLog.Split('\n');
             string[] localVersionData = localVersionLog.Split('\n');
-            int remoteVersion = int.Parse(remoteVersionData[0].Split('|')[1]);
+            string[] remoteVersionDataSplits = remoteVersionData[0].Split('|');
+            int remoteVersion = int.Parse(remoteVersionDataSplits[1]);
             int localVersion = int.Parse(localVersionData[0].Split('|')[1]);
             updateBundleDataInfo.PackageToVersion.Add(bundlePackageName, new int[2]{localVersion, remoteVersion});
+            if (remoteVersionDataSplits[2] == "origin")
+            {
+                updateBundleDataInfo.PackageToType.Add(bundlePackageName, UpdateBundleDataInfo.PackageType.Origin);
+            }
+            else
+            {
+                if (bool.TryParse(remoteVersionDataSplits[2], out bool result))
+                {
+                    updateBundleDataInfo.PackageToType.Add(bundlePackageName, result ? UpdateBundleDataInfo.PackageType.Encrypt : UpdateBundleDataInfo.PackageType.Normal);
+                }
+                else
+                {
+                    updateBundleDataInfo.PackageToType.Add(bundlePackageName, UpdateBundleDataInfo.PackageType.Normal);
+                }
+            }
+            
             if (localVersion > remoteVersion)
             {
                 AssetLogHelper.LogError("本地版本号优先与远程版本号 " + localVersion + ">" + remoteVersion + "\n"
@@ -270,9 +286,25 @@ namespace BM
         {
             string[] remoteVersionData = remoteVersionLog.Split('\n');
             string[] localVersionData = localVersionLog.Split('\n');
-            int remoteVersion = int.Parse(remoteVersionData[0].Split('|')[1]);
+            string[] remoteVersionDataSplits = remoteVersionData[0].Split('|');
+            int remoteVersion = int.Parse(remoteVersionDataSplits[1]);
             int localVersion = int.Parse(localVersionData[0].Split('|')[1]);
             updateBundleDataInfo.PackageToVersion.Add(bundlePackageName, new int[2]{localVersion, remoteVersion});
+            if (remoteVersionDataSplits[2] == "origin")
+            {
+                updateBundleDataInfo.PackageToType.Add(bundlePackageName, UpdateBundleDataInfo.PackageType.Origin);
+            }
+            else
+            {
+                if (bool.TryParse(remoteVersionDataSplits[2], out bool result))
+                {
+                    updateBundleDataInfo.PackageToType.Add(bundlePackageName, result ? UpdateBundleDataInfo.PackageType.Encrypt : UpdateBundleDataInfo.PackageType.Normal);
+                }
+                else
+                {
+                    updateBundleDataInfo.PackageToType.Add(bundlePackageName, UpdateBundleDataInfo.PackageType.Normal);
+                }
+            }
             if (localVersion > remoteVersion)
             {
                 AssetLogHelper.LogError("本地版本号优先与远程版本号 " + localVersion + ">" + remoteVersion + "\n"
@@ -397,18 +429,26 @@ namespace BM
             //所有分包都下载完成了就处理分包的Log文件
             foreach (string packageName in updateBundleDataInfo.PackageNeedUpdateBundlesInfos.Keys)
             {
-                byte[] fileLogsData = await DownloadBundleHelper.DownloadDataByUrl(Path.Combine(AssetComponentConfig.BundleServerUrl, packageName, "FileLogs.txt"));
-                byte[] dependLogsData = await DownloadBundleHelper.DownloadDataByUrl(Path.Combine(AssetComponentConfig.BundleServerUrl, packageName, "DependLogs.txt"));
+                if (updateBundleDataInfo.PackageToType[packageName] != UpdateBundleDataInfo.PackageType.Origin)
+                {
+                    byte[] fileLogsData = await DownloadBundleHelper.DownloadDataByUrl(Path.Combine(AssetComponentConfig.BundleServerUrl, packageName, "FileLogs.txt"));
+                    byte[] dependLogsData = await DownloadBundleHelper.DownloadDataByUrl(Path.Combine(AssetComponentConfig.BundleServerUrl, packageName, "DependLogs.txt"));
+                    if (fileLogsData == null || dependLogsData == null)
+                    {
+                        AssetLogHelper.LogError("获取Log表失败, PackageName: " + packageName);
+                        continue;
+                    }
+                    CreateUpdateLogFile(Path.Combine(AssetComponentConfig.HotfixPath, packageName, "FileLogs.txt"),
+                        System.Text.Encoding.UTF8.GetString(fileLogsData));
+                    CreateUpdateLogFile(Path.Combine(AssetComponentConfig.HotfixPath, packageName, "DependLogs.txt"),
+                        System.Text.Encoding.UTF8.GetString(dependLogsData));
+                }
                 byte[] versionLogsData = await DownloadBundleHelper.DownloadDataByUrl(Path.Combine(AssetComponentConfig.BundleServerUrl, packageName, "VersionLogs.txt"));
-                if (fileLogsData == null || dependLogsData == null || versionLogsData == null)
+                if (versionLogsData == null)
                 {
                     AssetLogHelper.LogError("获取Log表失败, PackageName: " + packageName);
                     continue;
                 }
-                CreateUpdateLogFile(Path.Combine(AssetComponentConfig.HotfixPath, packageName, "FileLogs.txt"),
-                    System.Text.Encoding.UTF8.GetString(fileLogsData));
-                CreateUpdateLogFile(Path.Combine(AssetComponentConfig.HotfixPath, packageName, "DependLogs.txt"),
-                    System.Text.Encoding.UTF8.GetString(dependLogsData));
                 CreateUpdateLogFile(Path.Combine(AssetComponentConfig.HotfixPath, packageName, "VersionLogs.txt"),
                     System.Text.Encoding.UTF8.GetString(versionLogsData));
             }
@@ -449,6 +489,20 @@ namespace BM
         public async ETTask DownLoad()
         {
             string url = Path.Combine(AssetComponentConfig.BundleServerUrl, PackegName, UnityWebRequest.EscapeURL(FileName));
+            if (FileName.Contains("\\"))
+            {
+                string[] pathSplits = FileName.Split('\\');
+                string filePath = "";
+                string fileUrls = "";
+                for (int i = 0; i < pathSplits.Length - 1; i++)
+                {
+                    filePath += (pathSplits[i] + "/");
+                    fileUrls += (UnityWebRequest.EscapeURL(pathSplits[i]) + "/");
+                }
+                fileUrls += (UnityWebRequest.EscapeURL(pathSplits[pathSplits.Length - 1]));
+                Directory.CreateDirectory(Path.Combine(AssetComponentConfig.HotfixPath, PackegName, filePath));
+                url = Path.Combine(AssetComponentConfig.BundleServerUrl, PackegName, fileUrls);
+            }
             byte[] data = await DownloadBundleHelper.DownloadDataByUrl(url);
             using (FileStream fs = new FileStream(Path.Combine(DownLoadPackagePath, FileName), FileMode.Create))
             {

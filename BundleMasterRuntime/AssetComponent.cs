@@ -77,6 +77,8 @@ namespace BM
 #else
                 AssetLogHelper.LogError("加载资源: " + assetPath + " 失败(资源加载Develop模式只能在编辑器下运行)");
 #endif
+                handler.CompleteCallback?.Invoke(handler);
+                handler.CompleteCallback = null;
                 return (T)handler.Asset;
             }
             if (!BundleNameToRuntimeInfo.TryGetValue(bundlePackageName, out BundleRuntimeInfo bundleRuntimeInfo))
@@ -89,6 +91,8 @@ namespace BM
             bundleRuntimeInfo.UnLoadHandler.Add(handler.UniqueId, handler);
             handler.Load();
             handler.Asset = handler.FileAssetBundle.LoadAsset<T>(assetPath);
+            handler.CompleteCallback?.Invoke(handler);
+            handler.CompleteCallback = null;
             return (T)handler.Asset;
         }
         public static T Load<T>(out LoadHandler handler, string assetPath, string bundlePackageName) where T : UnityEngine.Object => Load<T>(out handler, assetPath, false, bundlePackageName);
@@ -157,6 +161,8 @@ namespace BM
 #else
                 AssetLogHelper.LogError("加载资源: " + assetPath + " 失败(资源加载Develop模式只能在编辑器下运行)");
 #endif
+                handler.CompleteCallback?.Invoke(handler);
+                handler.CompleteCallback = null;
                 return handler.Asset;
             }
             if (!BundleNameToRuntimeInfo.TryGetValue(bundlePackageName, out BundleRuntimeInfo bundleRuntimeInfo))
@@ -169,6 +175,8 @@ namespace BM
             bundleRuntimeInfo.UnLoadHandler.Add(handler.UniqueId, handler);
             handler.Load();
             handler.Asset = handler.FileAssetBundle.LoadAsset(assetPath);
+            handler.CompleteCallback?.Invoke(handler);
+            handler.CompleteCallback = null;
             return handler.Asset;
         }
         public static UnityEngine.Object Load(out LoadHandler handler, string assetPath, string bundlePackageName) => Load(out handler, assetPath, false, bundlePackageName);
@@ -257,6 +265,8 @@ namespace BM
                 AssetLogHelper.LogError("加载资源: " + assetPath + " 失败(资源加载Develop模式只能在编辑器下运行)");
 #endif
                 tcs.SetResult((T)handler.Asset);
+                handler.CompleteCallback?.Invoke(handler);
+                handler.CompleteCallback = null;
                 return tcs;
             }
             if (!BundleNameToRuntimeInfo.TryGetValue(bundlePackageName, out BundleRuntimeInfo bundleRuntimeInfo))
@@ -355,6 +365,8 @@ namespace BM
                 AssetLogHelper.LogError("加载资源: " + assetPath + " 失败(资源加载Develop模式只能在编辑器下运行)");
 #endif
                 tcs.SetResult(handler.Asset);
+                handler.CompleteCallback?.Invoke(handler);
+                handler.CompleteCallback = null;
                 return tcs;
             }
             if (!BundleNameToRuntimeInfo.TryGetValue(bundlePackageName, out BundleRuntimeInfo bundleRuntimeInfo))
@@ -378,6 +390,8 @@ namespace BM
             loadAssetAsync.completed += operation =>
             {
                 handlerRef.Asset = loadAssetAsync.asset;
+                handlerRef.CompleteCallback?.Invoke(handlerRef);
+                handlerRef.CompleteCallback = null;
                 finishTcs.SetResult((T)loadAssetAsync.asset);
             };
         }
@@ -388,6 +402,8 @@ namespace BM
             loadAssetAsync.completed += operation =>
             {
                 handlerRef.Asset = loadAssetAsync.asset;
+                handlerRef.CompleteCallback?.Invoke(handlerRef);
+                handlerRef.CompleteCallback = null;
                 finishTcs.SetResult(loadAssetAsync.asset);
             };
         }

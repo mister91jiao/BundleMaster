@@ -7,7 +7,7 @@ namespace BM
     /// <summary>
     /// 用于配置单个Bundle包的构建信息
     /// </summary>
-    public class AssetsLoadSetting : ScriptableObject
+    public class AssetsLoadSetting : AssetsSetting
     {
         [Header("分包名字")]
         [Tooltip("当前分包的包名(建议英文)")] public string BuildName;

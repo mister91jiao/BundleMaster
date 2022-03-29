@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using ET;
 
@@ -6,6 +7,23 @@ namespace BM
 {
     public class LoadHandler : LoadHandlerBase
     {
+        internal Action<LoadHandler> CompleteCallback;
+        public event Action<LoadHandler> Completed
+        {
+            add
+            {
+                if (Asset != null)
+                {
+                    value(this);
+                }
+                else
+                {
+                    this.CompleteCallback += value;
+                }
+            }
+            remove => this.CompleteCallback -= value;
+        }
+        
         /// <summary>
         /// 是否进池
         /// </summary>
@@ -187,6 +205,7 @@ namespace BM
                 }
                 bundleRuntimeInfo.AllAssetLoadHandler.Remove(AssetPath);
             }
+            CompleteCallback = null;
             if (isPool)
             {
                 //进池

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using UnityEngine;
 using UnityEditor;
+using Debug = UnityEngine.Debug;
 
 namespace BM
 {
@@ -16,7 +17,7 @@ namespace BM
             Stopwatch sw = new Stopwatch();
             sw.Start();
             AssetLoadTable assetLoadTable = AssetDatabase.LoadAssetAtPath<AssetLoadTable>(BundleMasterWindow.AssetLoadTablePath);
-            List<AssetsLoadSetting> assetsLoadSettings = assetLoadTable.AssetsLoadSettings;
+            List<AssetsSetting> assetsSettings = assetLoadTable.AssetsSettings;
             //开始构建前剔除多余场景
             List<EditorBuildSettingsScene> editorBuildSettingsScenes = new List<EditorBuildSettingsScene>();
             foreach (SceneAsset sceneAsset in assetLoadTable.InitScene)
@@ -34,10 +35,19 @@ namespace BM
             //记录所有加载路径
             HashSet<string> allAssetLoadPath = new HashSet<string>();
             //构建所有分包
-            foreach (AssetsLoadSetting assetsLoadSetting in assetsLoadSettings)
+            foreach (AssetsSetting assetsSetting in assetsSettings)
             {
-                //获取单个Bundle的配置文件
-                Build(assetLoadTable, assetsLoadSetting, allAssetLoadPath);
+                if (assetsSetting is AssetsLoadSetting)
+                {
+                    //获取单个Bundle的配置文件
+                    Build(assetLoadTable, assetsSetting as AssetsLoadSetting, allAssetLoadPath);
+                }
+                else
+                {
+                    //处理原生资源
+                    AnalysisOriginFile(assetLoadTable, assetsSetting as AssetsOriginSetting);
+
+                }
             }
             //生成路径字段代码脚本
             if (assetLoadTable.GeneratePathCode)
@@ -67,8 +77,12 @@ namespace BM
             }
             DeleteHelper.DeleteDir(Application.streamingAssetsPath);
             AssetLoadTable assetLoadTable = AssetDatabase.LoadAssetAtPath<AssetLoadTable>(BundleMasterWindow.AssetLoadTablePath);
-            foreach (AssetsLoadSetting assetsLoadSetting in assetLoadTable.AssetsLoadSettings)
+            foreach (AssetsSetting assetsSetting in assetLoadTable.AssetsSettings)
             {
+                if (!(assetsSetting is AssetsLoadSetting assetsLoadSetting))
+                {
+                    continue;
+                }
                 string assetPathFolder;
                 if (assetsLoadSetting.EncryptAssets)
                 {
@@ -99,6 +113,32 @@ namespace BM
                         continue;
                     }
                     File.Copy(filePath, Path.Combine(directoryPath, fileInfo.Name));
+                }
+            }
+            foreach (AssetsSetting assetsSetting in assetLoadTable.AssetsSettings)
+            {
+                if (!(assetsSetting is AssetsOriginSetting assetsOriginSetting))
+                {
+                    continue;
+                }
+                string assetPathFolder = Path.Combine(assetLoadTable.BuildBundlePath, assetsOriginSetting.BuildName);
+                string directoryPath = Path.Combine(Application.streamingAssetsPath, assetsOriginSetting.BuildName);
+                if (!Directory.Exists(directoryPath))
+                {
+                    Directory.CreateDirectory(directoryPath);
+                }
+                //获取所有资源目录
+                HashSet<string> files = new HashSet<string>();
+                HashSet<string> dirs = new HashSet<string>();
+                BuildAssetsTools.GetOriginsPath(assetPathFolder, files, dirs);
+                //Copy资源
+                foreach (string dir in dirs)
+                {
+                    Directory.CreateDirectory(dir.Replace(assetPathFolder, directoryPath));
+                }
+                foreach (string file in files)
+                {
+                    File.Copy(file, file.Replace(assetPathFolder, directoryPath), true);
                 }
             }
             AssetDatabase.Refresh();
@@ -296,6 +336,37 @@ namespace BM
                 }
             }
         }
+
+        /// <summary>
+        /// 分析原生资源包
+        /// </summary>
+        private static void AnalysisOriginFile(AssetLoadTable assetLoadTable, AssetsOriginSetting assetsOriginSetting)
+        {
+            string filePath = Path.Combine(assetLoadTable.BuildBundlePath, assetsOriginSetting.BuildName);
+            if (!Directory.Exists(filePath))
+            {
+                Directory.CreateDirectory(filePath);
+            }
+            DeleteHelper.DeleteDir(filePath);
+            //获取所有资源目录
+            HashSet<string> files = new HashSet<string>();
+            HashSet<string> dirs = new HashSet<string>();
+            BuildAssetsTools.GetOriginsPath(assetsOriginSetting.OriginFilePath, files, dirs);
+            //Copy资源
+            foreach (string dir in dirs)
+            {
+                Directory.CreateDirectory(dir.Replace(assetsOriginSetting.OriginFilePath, filePath));
+            }
+            List<string> letFilePaths = new List<string>();
+            foreach (string file in files)
+            {
+                string letFilePath = file.Replace(assetsOriginSetting.OriginFilePath + "\\", null);
+                letFilePaths.Add(letFilePath);
+                File.Copy(file, Path.Combine(filePath, letFilePath), true);
+            }
+            //生成版本文件
+            SaveOriginFileVersionFile(filePath, letFilePaths.ToArray(), assetsOriginSetting);
+        }
         
         /// <summary>
         /// 创建AssetBundleBuild并添加管理
@@ -365,6 +436,27 @@ namespace BM
                     string bundlePath = Path.Combine(bundlePackagePath, assetBundle);
                     uint crc32 = VerifyHelper.GetCRC32(File.ReadAllBytes(bundlePath));
                     string info = assetBundle + "|" + VerifyHelper.GetFileLength(bundlePath) + "|" + crc32 + "\n";
+                    sb.Append(info);
+                }
+                sw.WriteLine(sb.ToString());
+            }
+        }
+        
+        /// <summary>
+        /// 保存原始的版本号文件
+        /// </summary>
+        private static void SaveOriginFileVersionFile(string bundlePackagePath, string[] filePaths, AssetsOriginSetting assetsOriginSetting)
+        {
+            using (StreamWriter sw = new StreamWriter(Path.Combine(bundlePackagePath, "VersionLogs.txt")))
+            {
+                StringBuilder sb = new StringBuilder();
+                string versionHandler = System.DateTime.Now + "|" + assetsOriginSetting.BuildIndex + "|" + "origin" + "\n";
+                sb.Append(versionHandler);
+                foreach (string filePath in filePaths)
+                {
+                    string bundlePath = Path.Combine(bundlePackagePath, filePath);
+                    uint crc32 = VerifyHelper.GetCRC32(File.ReadAllBytes(bundlePath));
+                    string info = filePath + "|" + VerifyHelper.GetFileLength(bundlePath) + "|" + crc32 + "\n";
                     sb.Append(info);
                 }
                 sw.WriteLine(sb.ToString());
