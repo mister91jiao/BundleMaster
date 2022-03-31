@@ -504,7 +504,9 @@ namespace BM
                 url = Path.Combine(AssetComponentConfig.BundleServerUrl, PackegName, fileUrls);
             }
             byte[] data = await DownloadBundleHelper.DownloadDataByUrl(url);
-            using (FileStream fs = new FileStream(Path.Combine(DownLoadPackagePath, FileName), FileMode.Create))
+            string fileCreatePath = Path.Combine(DownLoadPackagePath, FileName);
+            fileCreatePath = fileCreatePath.Replace("\\", "/");
+            using (FileStream fs = new FileStream(fileCreatePath, FileMode.Create))
             {
                 //大于2M用异步
                 if (data.Length > 2097152)
