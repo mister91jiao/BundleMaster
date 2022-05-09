@@ -92,6 +92,10 @@ namespace BM
         /// </summary>
         public static bool CantLoadType(string fileFullName)
         {
+            if (!CantLoadFile(fileFullName))
+            {
+                return false;
+            }
             string suffix = Path.GetExtension(fileFullName);
             switch (suffix)
             {
@@ -106,6 +110,26 @@ namespace BM
                 case ".boo":
                     return false;
             }
+            return true;
+        }
+
+        /// <summary>
+        /// 不能加载的文件
+        /// </summary>
+        public static bool CantLoadFile(string fillPathOrName)
+        {
+            if (fillPathOrName.Contains("LightingData.asset"))
+            {
+                return false;
+            }
+            // if (fillPathOrName.Contains("Lightmap-"))
+            // {
+            //     return false;
+            // }
+            // if (fillPathOrName.Contains("ReflectionProbe-"))
+            // {
+            //     return false;
+            // }
             return true;
         }
         

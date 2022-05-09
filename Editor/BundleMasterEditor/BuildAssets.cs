@@ -224,6 +224,10 @@ namespace BM
                     {
                         continue;
                     }
+                    if (!BuildAssetsTools.CantLoadFile(depend))
+                    {
+                        continue;
+                    }
                     if (files.Contains(depend))
                     {
                         if (depend == file)
