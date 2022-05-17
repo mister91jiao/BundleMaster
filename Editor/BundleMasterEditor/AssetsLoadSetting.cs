@@ -34,6 +34,10 @@ namespace BM
         [Tooltip("需要打包的资源所在的路径(不需要包含依赖, 只包括需要主动加载的资源)")]
         public List<string> AssetPath = new List<string>();
         
+        [Header("一组资源路径")]
+        [Tooltip("资源颗粒控制")]
+        public List<string> AssetGroupPaths = new List<string>();
+        
         [Header("场景资源")]
         [Tooltip("需要通过Bundle加载的场景")]
         public List<SceneAsset> Scene = new List<SceneAsset>();

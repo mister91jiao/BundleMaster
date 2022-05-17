@@ -2,7 +2,9 @@
 using System.IO;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using ET;
+using UnityEngine;
 using UnityEngine.Networking;
 
 namespace BM
@@ -51,9 +53,9 @@ namespace BM
                 updateBundleDataInfo.PackageCRCDictionary.Add(bundlePackageName, new Dictionary<string, uint>());
                 if (File.Exists(crcLogPath))
                 {
-                    using (StringReader stringReader = new StringReader(crcLogPath))
+                    using (StreamReader streamReader = new StreamReader(crcLogPath))
                     {
-                        string crcLog = await stringReader.ReadToEndAsync();
+                        string crcLog = await streamReader.ReadToEndAsync();
                         string[] crcLogData = crcLog.Split('\n');
                         for (int j = 0; j < crcLogData.Length; j++)
                         {
@@ -219,23 +221,23 @@ namespace BM
                     streamingCRC.Add(info[0], crc);
                 }
             }
-            //添加本地文件CRC信息
-            for (int i = 1; i < localVersionData.Length; i++)
-            {
-                string localVersionDataLine = localVersionData[i];
-                if (!string.IsNullOrWhiteSpace(localVersionDataLine))
-                {
-                    string[] info = localVersionDataLine.Split('|');
-                    if (updateBundleDataInfo.PackageCRCDictionary[bundlePackageName].ContainsKey(info[0]))
-                    {
-                        updateBundleDataInfo.PackageCRCDictionary[bundlePackageName][info[0]] = uint.Parse(info[2]);
-                    }
-                    else
-                    {
-                        updateBundleDataInfo.PackageCRCDictionary[bundlePackageName].Add(info[0], uint.Parse(info[2]));
-                    }
-                }
-            }
+            // //添加本地文件CRC信息
+            // for (int i = 1; i < localVersionData.Length; i++)
+            // {
+            //     string localVersionDataLine = localVersionData[i];
+            //     if (!string.IsNullOrWhiteSpace(localVersionDataLine))
+            //     {
+            //         string[] info = localVersionDataLine.Split('|');
+            //         if (updateBundleDataInfo.PackageCRCDictionary[bundlePackageName].ContainsKey(info[0]))
+            //         {
+            //             updateBundleDataInfo.PackageCRCDictionary[bundlePackageName][info[0]] = uint.Parse(info[2]);
+            //         }
+            //         else
+            //         {
+            //             updateBundleDataInfo.PackageCRCDictionary[bundlePackageName].Add(info[0], uint.Parse(info[2]));
+            //         }
+            //     }
+            // }
             //创建最后需要返回的数据
             Dictionary<string, long> needUpdateBundles = new Dictionary<string, long>();
             for (int i = 1; i < remoteVersionData.Length; i++)
@@ -433,7 +435,8 @@ namespace BM
                 {
                     byte[] fileLogsData = await DownloadBundleHelper.DownloadDataByUrl(Path.Combine(AssetComponentConfig.BundleServerUrl, packageName, "FileLogs.txt"));
                     byte[] dependLogsData = await DownloadBundleHelper.DownloadDataByUrl(Path.Combine(AssetComponentConfig.BundleServerUrl, packageName, "DependLogs.txt"));
-                    if (fileLogsData == null || dependLogsData == null)
+                    byte[] groupLogsData = await DownloadBundleHelper.DownloadDataByUrl(Path.Combine(AssetComponentConfig.BundleServerUrl, packageName, "GroupLogs.txt"));
+                    if (fileLogsData == null || dependLogsData == null || groupLogsData == null)
                     {
                         AssetLogHelper.LogError("获取Log表失败, PackageName: " + packageName);
                         continue;
@@ -442,6 +445,8 @@ namespace BM
                         System.Text.Encoding.UTF8.GetString(fileLogsData));
                     CreateUpdateLogFile(Path.Combine(AssetComponentConfig.HotfixPath, packageName, "DependLogs.txt"),
                         System.Text.Encoding.UTF8.GetString(dependLogsData));
+                    CreateUpdateLogFile(Path.Combine(AssetComponentConfig.HotfixPath, packageName, "GroupLogs.txt"),
+                        System.Text.Encoding.UTF8.GetString(groupLogsData));
                 }
                 byte[] versionLogsData = await DownloadBundleHelper.DownloadDataByUrl(Path.Combine(AssetComponentConfig.BundleServerUrl, packageName, "VersionLogs.txt"));
                 if (versionLogsData == null)

@@ -148,6 +148,30 @@ namespace BM
             }
             return false;
         }
+        
+        public static bool IsGroupAsset(string fileFullName, AssetsLoadSetting assetsLoadSetting)
+        {
+            foreach (string assetGroupPath in assetsLoadSetting.AssetGroupPaths)
+            {
+                if (fileFullName.Contains(assetGroupPath))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        
+        public static string GetGroupAssetPath(string fileFullName, AssetsLoadSetting assetsLoadSetting)
+        {
+            foreach (string assetGroupPath in assetsLoadSetting.AssetGroupPaths)
+            {
+                if (fileFullName.Contains(assetGroupPath))
+                {
+                    return assetGroupPath;
+                }
+            }
+            return null;
+        }
 
         /// <summary>
         /// 是否生成路径字段代码脚本
