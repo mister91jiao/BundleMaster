@@ -33,31 +33,6 @@ namespace BM
         /// 加载出来的资源
         /// </summary>
         public UnityEngine.Object Asset = null;
-        
-        /// <summary>
-        /// File文件AssetBundle的引用
-        /// </summary>
-        public AssetBundle FileAssetBundle;
-    
-        /// <summary>
-        /// 资源所在的LoadBase包
-        /// </summary>
-        private LoadBase _loadBase = null;
-    
-        /// <summary>
-        /// 依赖的Bundle包
-        /// </summary>
-        private List<LoadDepend> _loadDepends = new List<LoadDepend>();
-    
-        /// <summary>
-        /// 依赖的其它File包
-        /// </summary>
-        private List<LoadFile> _loadDependFiles = new List<LoadFile>();
-        
-        /// <summary>
-        /// 依赖的其它Group包
-        /// </summary>
-        private List<LoadGroup> _loadDependGroups = new List<LoadGroup>();
 
         /// <summary>
         /// 加载的状态
