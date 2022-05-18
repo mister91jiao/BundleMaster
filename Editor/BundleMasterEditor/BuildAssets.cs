@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEditor;
 using Debug = UnityEngine.Debug;
@@ -611,10 +612,23 @@ namespace BM
                 filePath = filePath.Replace("/", "_");
                 filePath = filePath.Replace(".", "_");
                 filePath = filePath.Replace(" ", "_");
+                // filePath = filePath.Replace("+", "_");
+                // filePath = filePath.Replace("-", "_");
                 filePath = bundlePackageName + "_" + filePath;
                 filePath = filePath.ToLower();
             }
             return filePath;
+        }
+        
+        /// <summary>
+        /// 使用正则表达式替换或去掉半角标点符号(如果资源命名非常混乱可尝试此方法，注意可能会引起文件重名，推荐使用Hash名)
+        /// </summary>
+        private static string RemoveSymbol(string keyText)
+        {
+            string pattern = @"[~!@#\$%\^&\*\(\)\+=\|\\\}\]\{\[:;<,>\?\/""]+";
+            Regex seperatorReg = new Regex(pattern, RegexOptions.IgnorePatternWhitespace);
+            keyText = seperatorReg.Replace(keyText, "__").Trim();
+            return keyText;
         }
     }
 }
