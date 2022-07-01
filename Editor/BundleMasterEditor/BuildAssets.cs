@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEditor;
 using Debug = UnityEngine.Debug;
+using UnityEngine.Rendering;
 
 namespace BM
 {
@@ -33,6 +34,23 @@ namespace BM
                 Directory.CreateDirectory(encryptAssetFolderPath);
             }
             DeleteHelper.DeleteDir(encryptAssetFolderPath);
+            //记录工程包含的Shader
+            HashSet<string> alwaysIncludedShaders = new HashSet<string>();
+            Object graphicsSettings = GraphicsSettings.GetGraphicsSettings();
+            SerializedObject serializedObject = new SerializedObject(graphicsSettings);
+            SerializedProperty serializedProperty = serializedObject.FindProperty("m_AlwaysIncludedShaders");
+            if (serializedProperty.isArray)
+            {
+                for (int i = 0; i < serializedProperty.arraySize; i++)
+                {
+                    SerializedProperty property = serializedProperty.GetArrayElementAtIndex(i);
+                    Object shaderInfo = property.objectReferenceValue;
+                    if (!alwaysIncludedShaders.Contains(shaderInfo.name))
+                    {
+                        alwaysIncludedShaders.Add(shaderInfo.name);
+                    }
+                }
+            }
             //记录所有加载路径
             HashSet<string> allAssetLoadPath = new HashSet<string>();
             //构建所有分包
@@ -41,7 +59,7 @@ namespace BM
                 if (assetsSetting is AssetsLoadSetting)
                 {
                     //获取单个Bundle的配置文件
-                    Build(assetLoadTable, assetsSetting as AssetsLoadSetting, allAssetLoadPath);
+                    Build(assetLoadTable, assetsSetting as AssetsLoadSetting, allAssetLoadPath, alwaysIncludedShaders);
                 }
                 else
                 {
@@ -146,7 +164,7 @@ namespace BM
             AssetLogHelper.Log("已将资源复制到StreamingAssets");
         }
         
-        private static void Build(AssetLoadTable assetLoadTable, AssetsLoadSetting assetsLoadSetting, HashSet<string> assetLoadPath)
+        private static void Build(AssetLoadTable assetLoadTable, AssetsLoadSetting assetsLoadSetting, HashSet<string> assetLoadPath, HashSet<string> alwaysIncludedShaders)
         {
             Dictionary<string, LoadFile> loadFileDic = new Dictionary<string, LoadFile>();
             Dictionary<string, LoadDepend> loadDependDic = new Dictionary<string, LoadDepend>();
@@ -195,6 +213,11 @@ namespace BM
                 //Shader资源单独处理
                 if (BuildAssetsTools.IsShaderAsset(file))
                 {
+                    Shader shaderObj = AssetDatabase.LoadAssetAtPath<Shader>(file);
+                    if (shaderObj != null && alwaysIncludedShaders.Contains(shaderObj.name))
+                    {
+                        continue;
+                    }
                     if (!shaders.Contains(file))
                     {
                         shaders.Add(file);
@@ -235,6 +258,11 @@ namespace BM
                     //shader单独进包
                     if (BuildAssetsTools.IsShaderAsset(depend))
                     {
+                        Shader shaderObj = AssetDatabase.LoadAssetAtPath<Shader>(depend);
+                        if (shaderObj != null && alwaysIncludedShaders.Contains(shaderObj.name))
+                        {
+                            continue;
+                        }
                         if (!shaders.Contains(depend))
                         {
                             shaders.Add(depend);
