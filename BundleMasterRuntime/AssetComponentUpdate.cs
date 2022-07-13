@@ -420,7 +420,10 @@ namespace BM
                     }
                 }
             }
+            //将下载进度更新添加到帧循环
+            _downLoadAction += updateBundleDataInfo.UpdateProgress;
             await downLoading;
+            
             //下载完成关闭CRCLog文件
             foreach (StreamWriter sw in updateBundleDataInfo.PackageCRCFile.Values)
             {
@@ -457,6 +460,10 @@ namespace BM
                 CreateUpdateLogFile(Path.Combine(AssetComponentConfig.HotfixPath, packageName, "VersionLogs.txt"),
                     System.Text.Encoding.UTF8.GetString(versionLogsData));
             }
+            
+            updateBundleDataInfo.SmoothProgress = 100;
+            updateBundleDataInfo.FinishCallback?.Invoke();
+            _downLoadAction -= updateBundleDataInfo.UpdateProgress;
             AssetLogHelper.LogError("下载完成");
         }
         
@@ -508,13 +515,16 @@ namespace BM
                 Directory.CreateDirectory(Path.Combine(AssetComponentConfig.HotfixPath, PackegName, filePath));
                 url = Path.Combine(AssetComponentConfig.BundleServerUrl, PackegName, fileUrls);
             }
+            float startDownLoadTime = Time.realtimeSinceStartup;
             byte[] data = await DownloadBundleHelper.DownloadDataByUrl(url);
+            int dataLength = data.Length;
+            UpdateBundleDataInfo.AddSpeedQueue((int)(dataLength / (Time.realtimeSinceStartup - startDownLoadTime)));
             string fileCreatePath = Path.Combine(DownLoadPackagePath, FileName);
             fileCreatePath = fileCreatePath.Replace("\\", "/");
             using (FileStream fs = new FileStream(fileCreatePath, FileMode.Create))
             {
                 //大于2M用异步
-                if (data.Length > 2097152)
+                if (dataLength > 2097152)
                 {
                     await fs.WriteAsync(data, 0, data.Length);
                 }

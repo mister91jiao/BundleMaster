@@ -36,7 +36,7 @@ namespace BM
                 if (!string.IsNullOrEmpty(webRequest.error))
 #endif
                 {
-                    AssetLogHelper.Log("下载Bundle失败 重试\n" + webRequest.error);
+                    AssetLogHelper.Log("下载Bundle失败 重试\n" + webRequest.error + "\nURL：" + url);
                     return null;
                 }
                 return webRequest.downloadHandler.data;

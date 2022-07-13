@@ -1,7 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using ET;
+using UnityEngine;
 
 namespace BM
 {
@@ -142,7 +144,99 @@ namespace BM
         /// 下载完成的Bundle的数量
         /// </summary>
         public int FinishDownLoadBundleCount = 0;
+        
+        /// <summary>
+        /// 平滑进度
+        /// </summary>
+        internal float SmoothProgress = 0.0f;
+        private Action<float> progressCallback;
+        /// <summary>
+        /// 下载进度回调，每帧刷新，有插值
+        /// </summary>
+        public event Action<float> ProgressCallback
+        {
+            add => progressCallback += value;
+            remove => this.progressCallback -= value;
+        }
 
+        internal void UpdateProgress(float deltaTime)
+        {
+            if (FinishUpdate)
+            {
+                SmoothProgress = 100;
+            }
+            else
+            {
+                SmoothProgress += (Progress - SmoothProgress) * ValueHelper.GetMinValue(deltaTime / 0.1f, 1.0f);
+            }
+            progressCallback(SmoothProgress);
+        }
+        
+        internal Action FinishCallback;
+
+        /// <summary>
+        /// 下载更新完成回调
+        /// </summary>
+        public event Action DownLoadFinishCallback
+        {
+            add => FinishCallback += value;
+            remove => this.FinishCallback -= value;
+        }
+        
+        /// <summary>
+        /// 下载速度平均个数
+        /// </summary>
+        private int speedAvgCount = 10;
+        /// <summary>
+        /// 下载速度缓存队列
+        /// </summary>
+        private readonly Queue<int> downLoadSpeedQueue = new Queue<int>();
+        /// <summary>
+        /// 下载速度
+        /// </summary>
+        public int DownLoadSpeed
+        {
+            get
+            {
+                int addSpeed = 0;
+                int speedQueueCount = downLoadSpeedQueue.Count;
+                if (speedQueueCount == 0)
+                {
+                    return 0;
+                }
+                for (int i = 0; i < speedQueueCount; i++)
+                {
+                    int tempSpeed = downLoadSpeedQueue.Dequeue();
+                    addSpeed += tempSpeed;
+                    downLoadSpeedQueue.Enqueue(tempSpeed);
+                }
+                return addSpeed / speedQueueCount * AssetComponentConfig.MaxDownLoadCount;
+            }
+        }
+
+        private Action<int> downLoadSpeedCallback;
+        
+        /// <summary>
+        /// 下载速度改变回调，非每帧都刷新 单位byte每秒
+        /// </summary>
+        public event Action<int> DownLoadSpeedCallback
+        {
+            add => downLoadSpeedCallback += value;
+            remove => this.downLoadSpeedCallback -= value;
+        }
+        
+        public void AddSpeedQueue(int speed)
+        {
+            if (downLoadSpeedQueue.Count >= speedAvgCount)
+            {
+                downLoadSpeedQueue.Dequeue();
+                AddSpeedQueue(speed);
+                return;
+            }
+            downLoadSpeedQueue.Enqueue(speed);
+            downLoadSpeedCallback?.Invoke(DownLoadSpeed);
+        }
+        
         /// <summary>
         /// 获取更新的分包的版本索引    int[本地版本, 远程版本]
         /// </summary>
