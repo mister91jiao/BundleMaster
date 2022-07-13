@@ -7,7 +7,7 @@ namespace BM
     {
         public static async ETTask<byte[]> DownloadDataByUrl(string url)
         {
-            for (int i = 0; i < AssetComponentConfig.MaxDownLoadCount; i++)
+            for (int i = 0; i < AssetComponentConfig.ReDownLoadCount; i++)
             {
                 byte[] data = await DownloadData(url);
                 if (data != null)
