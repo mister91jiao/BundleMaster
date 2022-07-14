@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
 
 namespace BM
 {
@@ -245,32 +243,6 @@ namespace BM
             {
                 TrueUnLoadPool.Add(loadBase.Key, loadBase.Value);
             }
-        }
-
-
-        /// <summary>
-        /// 计时
-        /// </summary>
-        private static float _timer = 0;
-
-        /// <summary>
-        /// 下载进度更新器
-        /// </summary>
-        private static Action<float> _downLoadAction = null;
-        
-        /// <summary>
-        /// 卸载周期计时循环
-        /// </summary>
-        public static void Update()
-        {
-            float nowTime = Time.deltaTime;
-            _timer += nowTime;
-            if (_timer >= _unLoadCirculateTime)
-            {
-                _timer = 0;
-                AutoAddToTrueUnLoadPool();
-            }
-            _downLoadAction?.Invoke(nowTime);
         }
 
         /// <summary>

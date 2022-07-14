@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using ET;
-using UnityEngine;
 
 namespace BM
 {
@@ -82,6 +81,11 @@ namespace BM
         /// 需要更新的总大小
         /// </summary>
         public long NeedUpdateSize = 0;
+
+        /// <summary>
+        /// 是否取消
+        /// </summary>
+        internal bool Cancel = false;
         
         /// <summary>
         /// 需要更新的Bundle的信息
@@ -169,7 +173,7 @@ namespace BM
             {
                 SmoothProgress += (Progress - SmoothProgress) * ValueHelper.GetMinValue(deltaTime / 0.1f, 1.0f);
             }
-            progressCallback(SmoothProgress);
+            progressCallback?.Invoke(SmoothProgress);
         }
         
         internal Action FinishCallback;
@@ -270,12 +274,56 @@ namespace BM
                 AssetLogHelper.LogError("获取索引号没有找到分包: " + bundlePackageName);
                 return;
             }
+            if (Cancel)
+            {
+                return;
+            }
             if (!crcDictionary.ContainsKey(fileName))
             {
                 crcDictionary.Add(fileName, crc);
             }
             PackageCRCFile[bundlePackageName].WriteLine(fileName + "|" + crc.ToString() + "|" + UpdateTime);
             PackageCRCFile[bundlePackageName].Flush();
+        }
+
+        private Action errorCancelCallback;
+
+        /// <summary>
+        /// 下载失败回调
+        /// </summary>
+        public event Action ErrorCancelCallback
+        {
+            add => errorCancelCallback += value;
+            remove => this.errorCancelCallback -= value;
+        }
+        
+        /// <summary>
+        /// 取消更新
+        /// </summary>
+        public void CancelUpdate()
+        {
+            if (Cancel)
+            {
+                return;
+            }
+            Cancel = true;
+            errorCancelCallback?.Invoke();
+            DestroySelf();
+        }
+        
+        private void DestroySelf()
+        {
+            foreach (StreamWriter sw in PackageCRCFile.Values)
+            {
+                sw.Close();
+                sw.Dispose();
+            }
+            PackageCRCFile.Clear();
+            AssetComponent.DownLoadAction -= UpdateProgress;
+            progressCallback = null;
+            FinishCallback = null;
+            downLoadSpeedCallback = null;
+            errorCancelCallback = null;
         }
 
         /// <summary>

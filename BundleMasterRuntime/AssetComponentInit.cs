@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.IO;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using ET;
@@ -17,17 +16,17 @@ namespace BM
         /// <summary>
         /// 初始化
         /// </summary>
-        public static async ETTask Initialize(string bundlePackageName, string secretKey = null)
+        public static async ETTask<bool> Initialize(string bundlePackageName, string secretKey = null)
         {
             if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
             {
                 AssetLogHelper.Log("AssetLoadMode = Develop 不需要初始化Bundle配置文件");
-                return;
+                return false;
             }
             if (BundleNameToRuntimeInfo.ContainsKey(bundlePackageName))
             {
                 AssetLogHelper.LogError(bundlePackageName + " 重复初始化");
-                return;
+                return false;
             }
             BundleRuntimeInfo bundleRuntimeInfo = new BundleRuntimeInfo(bundlePackageName, secretKey);
             BundleNameToRuntimeInfo.Add(bundlePackageName, bundleRuntimeInfo);
@@ -42,52 +41,16 @@ namespace BM
                     fileTcs.SetResult();
                 };
                 await fileTcs;
-                string fileLogs;
 #if UNITY_2020_1_OR_NEWER
                 if (webRequest.result != UnityWebRequest.Result.Success)
 #else
                 if (!string.IsNullOrEmpty(webRequest.error))
 #endif
                 {
-                    if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Build)
-                    {
-                        byte[] fileLogsData = await DownloadBundleHelper.DownloadDataByUrl(Path.Combine(AssetComponentConfig.BundleServerUrl, bundlePackageName, "FileLogs.txt"));
-                        if (fileLogsData == null)
-                        {
-                            AssetLogHelper.LogError("获取Log表失败, PackageName: " + bundlePackageName + "\n " +
-                                                    "没有找到 " + bundlePackageName + " Bundle的FileLogs\n" + filePath);
-                            return;
-                        }
-                        fileLogs = System.Text.Encoding.UTF8.GetString(fileLogsData);
-                        CreateUpdateLogFile(Path.Combine(AssetComponentConfig.HotfixPath, bundlePackageName, "FileLogs.txt"), fileLogs);
-                    }
-                    else
-                    {
-                        AssetLogHelper.LogError("没有找到 " + bundlePackageName + " Bundle的FileLogs\n" + filePath);
-                        return;
-                    }
+                    AssetLogHelper.LogError("初始化分包未找到FileLogs 分包名: " + bundlePackageName);
+                    return false;
                 }
-                else
-                {
-                    if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Build)
-                    {
-                        byte[] fileLogsData = await DownloadBundleHelper.DownloadDataByUrl(Path.Combine(AssetComponentConfig.BundleServerUrl, bundlePackageName, "FileLogs.txt"));
-                        if (fileLogsData == null)
-                        {
-                            AssetLogHelper.LogError("获取Log表失败, PackageName: " + bundlePackageName);
-                            return;
-                        }
-                        fileLogs = System.Text.Encoding.UTF8.GetString(fileLogsData);
-                        if (fileLogs != webRequest.downloadHandler.text)
-                        {
-                            CreateUpdateLogFile(Path.Combine(AssetComponentConfig.HotfixPath, bundlePackageName, "FileLogs.txt"), fileLogs);
-                        }
-                    }
-                    else
-                    {
-                        fileLogs = webRequest.downloadHandler.text;
-                    }
-                }
+                string fileLogs = webRequest.downloadHandler.text;
                 Regex reg = new Regex(@"\<(.+?)>");
                 MatchCollection matchCollection = reg.Matches(fileLogs);
                 List<string> dependFileName = new List<string>();
@@ -120,52 +83,16 @@ namespace BM
                     dependTcs.SetResult();
                 };
                 await dependTcs;
-                string dependLogs;
 #if UNITY_2020_1_OR_NEWER
                 if (webRequest.result != UnityWebRequest.Result.Success)
 #else
                 if (!string.IsNullOrEmpty(webRequest.error))
 #endif
                 {
-                    if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Build)
-                    {
-                        byte[] dependLogsData = await DownloadBundleHelper.DownloadDataByUrl(Path.Combine(AssetComponentConfig.BundleServerUrl, bundlePackageName, "DependLogs.txt"));
-                        if (dependLogsData == null)
-                        {
-                            AssetLogHelper.LogError("获取Log表失败, PackageName: " + bundlePackageName + "\n " +
-                                                    "没有找到 " + bundlePackageName + " Bundle的DependLogs\n" + dependPath);
-                            return;
-                        }
-                        dependLogs = System.Text.Encoding.UTF8.GetString(dependLogsData);
-                        CreateUpdateLogFile(Path.Combine(AssetComponentConfig.HotfixPath, bundlePackageName, "DependLogs.txt"), dependLogs);
-                    }
-                    else
-                    {
-                        AssetLogHelper.LogError("没有找到 " + bundlePackageName + " Bundle的DependLogs\n" + dependPath);
-                        return;
-                    }
+                    AssetLogHelper.LogError("初始化分包未找到DependLogs 分包名: " + bundlePackageName);
+                    return false;
                 }
-                else
-                {
-                    if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Build)
-                    {
-                        byte[] dependLogsData = await DownloadBundleHelper.DownloadDataByUrl(Path.Combine(AssetComponentConfig.BundleServerUrl, bundlePackageName, "DependLogs.txt"));
-                        if (dependLogsData == null)
-                        {
-                            AssetLogHelper.LogError("获取Log表失败, PackageName: " + bundlePackageName);
-                            return;
-                        }
-                        dependLogs = System.Text.Encoding.UTF8.GetString(dependLogsData);
-                        if (dependLogs != webRequest.downloadHandler.text)
-                        {
-                            CreateUpdateLogFile(Path.Combine(AssetComponentConfig.HotfixPath, bundlePackageName, "DependLogs.txt"), dependLogs);
-                        }
-                    }
-                    else
-                    {
-                        dependLogs = webRequest.downloadHandler.text;
-                    }
-                }
+                string dependLogs = webRequest.downloadHandler.text;
                 Regex reg = new Regex(@"\<(.+?)>");
                 MatchCollection matchCollection = reg.Matches(dependLogs);
                 foreach (Match m in matchCollection)
@@ -187,52 +114,16 @@ namespace BM
                     groupTcs.SetResult();
                 };
                 await groupTcs;
-                string groupLogs;
 #if UNITY_2020_1_OR_NEWER
                 if (webRequest.result != UnityWebRequest.Result.Success)
 #else
                 if (!string.IsNullOrEmpty(webRequest.error))
 #endif
                 {
-                    if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Build)
-                    {
-                        byte[] groupLogsData = await DownloadBundleHelper.DownloadDataByUrl(Path.Combine(AssetComponentConfig.BundleServerUrl, bundlePackageName, "GroupLogs.txt"));
-                        if (groupLogsData == null)
-                        {
-                            AssetLogHelper.LogError("获取Log表失败, PackageName: " + bundlePackageName + "\n " +
-                                                    "没有找到 " + bundlePackageName + " Bundle的GroupLogs\n" + groupPath);
-                            return;
-                        }
-                        groupLogs = System.Text.Encoding.UTF8.GetString(groupLogsData);
-                        CreateUpdateLogFile(Path.Combine(AssetComponentConfig.HotfixPath, bundlePackageName, "GroupLogs.txt"), groupLogs);
-                    }
-                    else
-                    {
-                        AssetLogHelper.LogError("没有找到 " + bundlePackageName + " Bundle的GroupLogs\n" + groupPath);
-                        return;
-                    }
+                    AssetLogHelper.LogError("初始化分包未找到GroupLogs 分包名: " + bundlePackageName);
+                    return false;
                 }
-                else
-                {
-                    if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Build)
-                    {
-                        byte[] groupLogsData = await DownloadBundleHelper.DownloadDataByUrl(Path.Combine(AssetComponentConfig.BundleServerUrl, bundlePackageName, "GroupLogs.txt"));
-                        if (groupLogsData == null)
-                        {
-                            AssetLogHelper.LogError("获取Log表失败, PackageName: " + bundlePackageName);
-                            return;
-                        }
-                        groupLogs = System.Text.Encoding.UTF8.GetString(groupLogsData);
-                        if (groupLogs != webRequest.downloadHandler.text)
-                        {
-                            CreateUpdateLogFile(Path.Combine(AssetComponentConfig.HotfixPath, bundlePackageName, "GroupLogs.txt"), groupLogs);
-                        }
-                    }
-                    else
-                    {
-                        groupLogs = webRequest.downloadHandler.text;
-                    }
-                }
+                string groupLogs = webRequest.downloadHandler.text;
                 Regex reg = new Regex(@"\<(.+?)>");
                 MatchCollection matchCollection = reg.Matches(groupLogs);
                 foreach (Match m in matchCollection)
@@ -254,6 +145,7 @@ namespace BM
             }
             //加载当前分包的shader
             await LoadShader(bundlePackageName);
+            return true;
         }
         
         /// <summary>
