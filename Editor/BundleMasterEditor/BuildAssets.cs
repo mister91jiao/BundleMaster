@@ -36,7 +36,12 @@ namespace BM
             DeleteHelper.DeleteDir(encryptAssetFolderPath);
             //记录工程包含的Shader
             HashSet<string> alwaysIncludedShaders = new HashSet<string>();
-            Object graphicsSettings = GraphicsSettings.GetGraphicsSettings();
+            Object graphicsSettings = 
+#if UNITY_2020_1_OR_NEWER
+                GraphicsSettings.GetGraphicsSettings();
+#else
+                AssetDatabase.LoadAssetAtPath<GraphicsSettings>("ProjectSettings/GraphicsSettings.asset");
+#endif
             SerializedObject serializedObject = new SerializedObject(graphicsSettings);
             SerializedProperty serializedProperty = serializedObject.FindProperty("m_AlwaysIncludedShaders");
             if (serializedProperty.isArray)
