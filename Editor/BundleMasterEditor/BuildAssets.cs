@@ -514,7 +514,11 @@ namespace BM
             List<string> letFilePaths = new List<string>();
             foreach (string file in files)
             {
+#if UNITY_STANDALONE_OSX 
+                string letFilePath = file.Replace(assetsOriginSetting.OriginFilePath + "/", null);
+#else
                 string letFilePath = file.Replace(assetsOriginSetting.OriginFilePath + "\\", null);
+#endif
                 letFilePaths.Add(letFilePath);
                 File.Copy(file, Path.Combine(filePath, letFilePath), true);
             }
