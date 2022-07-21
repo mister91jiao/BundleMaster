@@ -43,10 +43,7 @@ namespace BM
                     }
                     if (AssetComponent.BundleNameToRuntimeInfo[BundlePackageName].LoadGroupDic.TryGetValue(dependFile, out LoadGroup loadDependGroup))
                     {
-                        if (!_loadDependGroups.Contains(loadDependGroup))
-                        {
-                            _loadDependGroups.Add(loadDependGroup);
-                        }
+                        _loadDependGroups.Add(loadDependGroup);
                         continue;
                     }
                     AssetLogHelper.LogError("场景依赖的资源没有找到对应的类: " + dependFile);
@@ -76,10 +73,7 @@ namespace BM
                 }
                 if (AssetComponent.BundleNameToRuntimeInfo[BundlePackageName].LoadGroupDic.TryGetValue(dependFile, out LoadGroup loadDependGroup))
                 {
-                    if (!_loadDependGroups.Contains(loadDependGroup))
-                    {
-                        _loadDependGroups.Add(loadDependGroup);
-                    }
+                    _loadDependGroups.Add(loadDependGroup);
                     continue;
                 }
                 AssetLogHelper.LogError("场景依赖的资源没有找到对应的类: " + dependFile);
