@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using ET;
@@ -32,7 +33,7 @@ namespace BM
             BundleNameToRuntimeInfo.Add(bundlePackageName, bundleRuntimeInfo);
 
             ETTask fileTcs= ETTask.Create();
-            string filePath = BundleFileExistPath(bundlePackageName, "FileLogs.txt");
+            string filePath = BundleFileExistPath(bundlePackageName, "FileLogs.txt", true);
             using (UnityWebRequest webRequest = UnityWebRequest.Get(filePath))
             {
                 UnityWebRequestAsyncOperation weq = webRequest.SendWebRequest();
@@ -47,7 +48,7 @@ namespace BM
                 if (!string.IsNullOrEmpty(webRequest.error))
 #endif
                 {
-                    AssetLogHelper.LogError("初始化分包未找到FileLogs 分包名: " + bundlePackageName);
+                    AssetLogHelper.LogError("初始化分包未找到FileLogs 分包名: " + bundlePackageName + "\t" + filePath);
                     return false;
                 }
                 string fileLogs = webRequest.downloadHandler.text;
@@ -74,7 +75,7 @@ namespace BM
                 }
             }
             ETTask dependTcs = ETTask.Create();
-            string dependPath = BundleFileExistPath(bundlePackageName, "DependLogs.txt");
+            string dependPath = BundleFileExistPath(bundlePackageName, "DependLogs.txt", true);
             using (UnityWebRequest webRequest = UnityWebRequest.Get(dependPath))
             {
                 UnityWebRequestAsyncOperation weq = webRequest.SendWebRequest();
@@ -89,7 +90,7 @@ namespace BM
                 if (!string.IsNullOrEmpty(webRequest.error))
 #endif
                 {
-                    AssetLogHelper.LogError("初始化分包未找到DependLogs 分包名: " + bundlePackageName);
+                    AssetLogHelper.LogError("初始化分包未找到DependLogs 分包名: " + bundlePackageName + "\t" + dependPath);
                     return false;
                 }
                 string dependLogs = webRequest.downloadHandler.text;
@@ -105,7 +106,7 @@ namespace BM
                 }
             }
             ETTask groupTcs = ETTask.Create();
-            string groupPath = BundleFileExistPath(bundlePackageName, "GroupLogs.txt");
+            string groupPath = BundleFileExistPath(bundlePackageName, "GroupLogs.txt", true);
             using (UnityWebRequest webRequest = UnityWebRequest.Get(groupPath))
             {
                 UnityWebRequestAsyncOperation weq = webRequest.SendWebRequest();
@@ -120,7 +121,7 @@ namespace BM
                 if (!string.IsNullOrEmpty(webRequest.error))
 #endif
                 {
-                    AssetLogHelper.LogError("初始化分包未找到GroupLogs 分包名: " + bundlePackageName);
+                    AssetLogHelper.LogError("初始化分包未找到GroupLogs 分包名: " + bundlePackageName+ "\t" + groupPath);
                     return false;
                 }
                 string groupLogs = webRequest.downloadHandler.text;
@@ -154,28 +155,40 @@ namespace BM
         private static async ETTask LoadShader(string bundlePackageName)
         {
             ETTask tcs = ETTask.Create();
-            string shaderPath = BundleFileExistPath(bundlePackageName, "shader_" + bundlePackageName.ToLower());
-            byte[] shaderData;
+            string shaderPath = BundleFileExistPath(bundlePackageName, "shader_" + bundlePackageName.ToLower(), true);
             if (BundleNameToRuntimeInfo[bundlePackageName].Encrypt)
             {
-                shaderData = await VerifyHelper.GetDecryptDataAsync(shaderPath, null, BundleNameToRuntimeInfo[bundlePackageName].SecretKey);
-            }
-            else
-            {
-                shaderData = await VerifyHelper.GetDecryptDataAsync(shaderPath);
-            }
-            if (shaderData == null)
-            {
-                tcs.SetResult();
-            }
-            else
-            {
-                AssetBundleCreateRequest request = AssetBundle.LoadFromMemoryAsync(shaderData);
-                request.completed += operation =>
+                byte[] shaderData = await VerifyHelper.GetDecryptDataAsync(shaderPath, null, BundleNameToRuntimeInfo[bundlePackageName].SecretKey);
+                if (shaderData == null)
                 {
-                    BundleNameToRuntimeInfo[bundlePackageName].Shader = request.assetBundle;
                     tcs.SetResult();
-                };
+                }
+                else
+                {
+                    AssetBundleCreateRequest request = AssetBundle.LoadFromMemoryAsync(shaderData);
+                    request.completed += operation =>
+                    {
+                        BundleNameToRuntimeInfo[bundlePackageName].Shader = request.assetBundle;
+                        tcs.SetResult();
+                    };
+                }
+            }
+            else
+            {
+                byte[] shaderData = await VerifyHelper.GetDecryptDataAsync(shaderPath, null, BundleNameToRuntimeInfo[bundlePackageName].SecretKey);
+                if (shaderData == null)
+                {
+                    tcs.SetResult();
+                }
+                else
+                {
+                    AssetBundleCreateRequest request = AssetBundle.LoadFromFileAsync(BundleFileExistPath(bundlePackageName, "shader_" + bundlePackageName.ToLower(), false));
+                    request.completed += operation =>
+                    {
+                        BundleNameToRuntimeInfo[bundlePackageName].Shader = request.assetBundle;
+                        tcs.SetResult();
+                    };
+                }
             }
             await tcs;
         }

@@ -6,8 +6,10 @@ using System.Text;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEditor;
+using UnityEditor.U2D;
 using Debug = UnityEngine.Debug;
 using UnityEngine.Rendering;
+using UnityEngine.U2D;
 
 namespace BM
 {
@@ -56,6 +58,22 @@ namespace BM
                     }
                 }
             }
+            //查找所有图集
+            // Dictionary<string, List<string>> textureToSpriteAtlas = new Dictionary<string, List<string>>();
+            // foreach (string guid in AssetDatabase.FindAssets($"t:{nameof(SpriteAtlas)}"))
+            // {
+            //     string atlasPath = AssetDatabase.GUIDToAssetPath(guid);
+            //     SpriteAtlas spriteAtlas = AssetDatabase.LoadAssetAtPath<SpriteAtlas>(atlasPath);
+            //     Object[] sprites = spriteAtlas.GetPackables();
+            //     foreach (Object sprite in sprites)
+            //     {
+            //         string spritePath = AssetDatabase.GetAssetPath(sprite);
+            //         Debug.LogError(spritePath);
+            //     }
+            //     
+            //     
+            // }
+            
             //记录所有加载路径
             HashSet<string> allAssetLoadPath = new HashSet<string>();
             //构建所有分包

@@ -82,17 +82,18 @@ namespace BM
                     return;
                 }
             }
-            string assetBundlePath = AssetComponent.BundleFileExistPath(bundlePackageName, AssetBundleName);
-            byte[] data;
+            
             if (AssetComponent.BundleNameToRuntimeInfo[bundlePackageName].Encrypt)
             {
-                data = VerifyHelper.GetDecryptData(assetBundlePath, AssetComponent.BundleNameToRuntimeInfo[bundlePackageName].SecretKey);
+                string assetBundlePath = AssetComponent.BundleFileExistPath(bundlePackageName, AssetBundleName, true);
+                byte[] data = VerifyHelper.GetDecryptData(assetBundlePath, AssetComponent.BundleNameToRuntimeInfo[bundlePackageName].SecretKey);
+                AssetBundle = AssetBundle.LoadFromMemory(data);
             }
             else
             {
-                data = VerifyHelper.GetDecryptData(assetBundlePath);
+                string assetBundlePath = AssetComponent.BundleFileExistPath(bundlePackageName, AssetBundleName, false);
+                AssetBundle = AssetBundle.LoadFromFile(assetBundlePath);
             }
-            AssetBundle = AssetBundle.LoadFromMemory(data);
             _loadState = LoadState.Finish;
             for (int i = 0; i < _loadFinishTasks.Count; i++)
             {
@@ -116,29 +117,58 @@ namespace BM
             }
             _loadFinishTasks.Add(tcs);
             _loadState = LoadState.Loading;
-            string assetBundlePath = AssetComponent.BundleFileExistPath(bundlePackageName, AssetBundleName);
-            byte[] data;
+            
             if (AssetComponent.BundleNameToRuntimeInfo[bundlePackageName].Encrypt)
             {
-                data = await VerifyHelper.GetDecryptDataAsync(assetBundlePath, _loadProgress, AssetComponent.BundleNameToRuntimeInfo[bundlePackageName].SecretKey);
+                string assetBundlePath = AssetComponent.BundleFileExistPath(bundlePackageName, AssetBundleName, true);
+                await LoadDataFinish(assetBundlePath, bundlePackageName);
             }
             else
             {
-                data = await VerifyHelper.GetDecryptDataAsync(assetBundlePath, _loadProgress);
+                string assetBundlePath = AssetComponent.BundleFileExistPath(bundlePackageName, AssetBundleName, false);
+                LoadBundleFinish(assetBundlePath);
             }
-            LoadDataFinish(data);
         }
 
         /// <summary>
-        /// Data加载完成后执行的
+        /// 通过Byte加载完成(只有启用了异或加密才使用此加载方式)
         /// </summary>
-        private void LoadDataFinish(byte[] data)
+        private async ETTask LoadDataFinish(string assetBundlePath, string bundlePackageName)
         {
+            byte[] data = await VerifyHelper.GetDecryptDataAsync(assetBundlePath, _loadProgress, AssetComponent.BundleNameToRuntimeInfo[bundlePackageName].SecretKey);
             if (_loadState == LoadState.Finish)
             {
                 return;
             }
             _assetBundleCreateRequest = AssetBundle.LoadFromMemoryAsync(data);
+            _assetBundleCreateRequest.completed += operation =>
+            {
+                AssetBundle = _assetBundleCreateRequest.assetBundle;
+                for (int i = 0; i < _loadFinishTasks.Count; i++)
+                {
+                    _loadFinishTasks[i].SetResult();
+                }
+                _loadFinishTasks.Clear();
+                _loadState = LoadState.Finish;
+                //判断是否还需要
+                if (_refCount <= 0)
+                {
+                    AssetComponent.AddPreUnLoadPool(this);
+                }
+            };
+        }
+        
+        /// <summary>
+        /// 通过路径直接加载硬盘上的AssetBundle
+        /// </summary>
+        /// <param name="assetBundlePath"></param>
+        private void LoadBundleFinish(string assetBundlePath)
+        {
+            if (_loadState == LoadState.Finish)
+            {
+                return;
+            }
+            _assetBundleCreateRequest = AssetBundle.LoadFromFileAsync(assetBundlePath);
             _assetBundleCreateRequest.completed += operation =>
             {
                 AssetBundle = _assetBundleCreateRequest.assetBundle;
@@ -172,17 +202,18 @@ namespace BM
                 AssetBundle = _assetBundleCreateRequest.assetBundle;
                 return;
             }
-            string assetBundlePath = AssetComponent.BundleFileExistPath(bundlePackageName, AssetBundleName);
-            byte[] data;
+            
             if (AssetComponent.BundleNameToRuntimeInfo[bundlePackageName].Encrypt)
             {
-                data = VerifyHelper.GetDecryptData(assetBundlePath, AssetComponent.BundleNameToRuntimeInfo[bundlePackageName].SecretKey);
+                string assetBundlePath = AssetComponent.BundleFileExistPath(bundlePackageName, AssetBundleName, true);
+                byte[] data = VerifyHelper.GetDecryptData(assetBundlePath, AssetComponent.BundleNameToRuntimeInfo[bundlePackageName].SecretKey);
+                AssetBundle = AssetBundle.LoadFromMemory(data);
             }
             else
             {
-                data = VerifyHelper.GetDecryptData(assetBundlePath);
+                string assetBundlePath = AssetComponent.BundleFileExistPath(bundlePackageName, AssetBundleName, false);
+                AssetBundle = AssetBundle.LoadFromFile(assetBundlePath);
             }
-            AssetBundle = AssetBundle.LoadFromMemory(data);
             for (int i = 0; i < _loadFinishTasks.Count; i++)
             {
                 _loadFinishTasks[i].SetResult();
@@ -219,14 +250,20 @@ namespace BM
             {
                 return 0;
             }
+
+            if (_loadProgress.WeqOperation == null)
+            {
+                if (_assetBundleCreateRequest == null)
+                {
+                    return _loadProgress.GetWebProgress() / 2;
+                }
+                return _assetBundleCreateRequest.progress;
+            }
             if (_assetBundleCreateRequest == null)
             {
                 return _loadProgress.GetWebProgress() / 2;
             }
-            else
-            {
-                return (_assetBundleCreateRequest.progress + 1.0f) / 2;
-            }
+            return (_assetBundleCreateRequest.progress + 1.0f) / 2;
         }
         
     }

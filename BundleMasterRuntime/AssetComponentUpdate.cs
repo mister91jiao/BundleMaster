@@ -95,7 +95,7 @@ namespace BM
                 crcStream.AutoFlush = false;
                 updateBundleDataInfo.PackageCRCFile.Add(bundlePackageName, crcStream);
                 //获取本地的VersionLog
-                string localVersionLogExistPath = BundleFileExistPath(bundlePackageName, "VersionLogs.txt");
+                string localVersionLogExistPath = BundleFileExistPath(bundlePackageName, "VersionLogs.txt", true);
                 ETTask logTcs = ETTask.Create();
                 string localVersionLog;
                 using (UnityWebRequest webRequest = UnityWebRequest.Get(localVersionLogExistPath))
@@ -361,7 +361,7 @@ namespace BM
             {
                 string[] info = remoteVersionDataLine.Split('|');
                 //如果文件不存在直接加入更新
-                string filePath = BundleFileExistPath(bundlePackageName, info[0]);
+                string filePath = BundleFileExistPath(bundlePackageName, info[0], true);
                 uint fileCRC32 = await VerifyHelper.GetFileCRC32(filePath);
                 //判断是否和远程一样, 不一样直接加入更新
                 if (uint.Parse(info[2]) != fileCRC32)
