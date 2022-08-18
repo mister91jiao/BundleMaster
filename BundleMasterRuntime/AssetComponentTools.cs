@@ -35,13 +35,8 @@ namespace BM
             {
                 //直接加载
 #if UNITY_ANDROID && !UNITY_EDITOR
-                if (!path.Contains("file:///"))
-                {
-                    path = "file://" + path;
-                }
 #elif UNITY_IOS && !UNITY_EDITOR
 #elif UNITY_EDITOR_OSX || UNITY_STANDALONE_OSX
-                
 #elif UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
 #else  
 #endif
