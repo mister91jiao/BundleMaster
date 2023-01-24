@@ -42,7 +42,20 @@ namespace BM
                 _timer = 0;
                 AutoAddToTrueUnLoadPool();
             }
+            //更新下载完成任务
+            lock (DownloadBundleHelper.DownLoadFinishQueue)
+            {
+                if (DownloadBundleHelper.DownLoadFinishQueue.Count > 0)
+                {
+                    int downLoadFinishCount = DownloadBundleHelper.DownLoadFinishQueue.Count;
+                    for (int i = 0; i < downLoadFinishCount; i++)
+                    {
+                        DownloadBundleHelper.DownLoadFinishQueue.Dequeue().SetResult();
+                    }
+                }
+            }
             DownLoadAction?.Invoke(nowTime);
+            
         }
     }
 }

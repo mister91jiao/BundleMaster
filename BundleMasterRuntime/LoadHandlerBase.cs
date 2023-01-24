@@ -44,31 +44,29 @@ namespace BM
         /// <summary>
         /// 资源所在的LoadBase包
         /// </summary>
-        protected LoadBase _loadBase = null;
+        protected LoadBase LoadBase = null;
     
         /// <summary>
         /// 依赖的Bundle包
         /// </summary>
-        protected List<LoadDepend> _loadDepends = new List<LoadDepend>();
+        protected readonly List<LoadDepend> LoadDepends = new List<LoadDepend>();
     
         /// <summary>
         /// 依赖的其它File包
         /// </summary>
-        protected List<LoadFile> _loadDependFiles = new List<LoadFile>();
+        protected readonly List<LoadFile> LoadDependFiles = new List<LoadFile>();
         
         /// <summary>
         /// 依赖的其它Group包
         /// </summary>
-        protected List<LoadGroup> _loadDependGroups = new List<LoadGroup>();
+        protected readonly List<LoadGroup> LoadDependGroups = new List<LoadGroup>();
         
         /// <summary>
         /// 加载计数器(负责完成所有依赖的Bundle加载完成)
         /// </summary>
         protected async ETTask LoadAsyncLoader(LoadBase loadBase, ETTask baseTcs)
         {
-            ETTask tcs = ETTask.Create(true);
-            loadBase.LoadAssetBundleAsync(tcs, BundlePackageName).Coroutine();
-            await tcs;
+            await loadBase.LoadAssetBundleAsync(BundlePackageName);
             RefLoadFinishCount--;
             if (RefLoadFinishCount == 0)
             {

@@ -24,12 +24,7 @@ namespace BM
         /// <summary>
         /// AssetBundle的引用
         /// </summary>
-        public AssetBundle AssetBundle;
-
-        /// <summary>
-        /// 加载完成后需要执行的Task
-        /// </summary>
-        private List<ETTask> _loadFinishTasks = new List<ETTask>();
+        public AssetBundle AssetBundle = null;
 
         /// <summary>
         /// 需要统计进度
@@ -82,7 +77,7 @@ namespace BM
                     return;
                 }
             }
-            
+            //资源没有加载过也没有正在加载就同步加载出来
             if (AssetComponent.BundleNameToRuntimeInfo[bundlePackageName].Encrypt)
             {
                 string assetBundlePath = AssetComponent.BundleFileExistPath(bundlePackageName, AssetBundleName, true);
@@ -95,95 +90,86 @@ namespace BM
                 AssetBundle = AssetBundle.LoadFromFile(assetBundlePath);
             }
             _loadState = LoadState.Finish;
-            for (int i = 0; i < _loadFinishTasks.Count; i++)
-            {
-                _loadFinishTasks[i].SetResult();
-            }
-            _loadFinishTasks.Clear();
         }
     
-        internal async ETTask LoadAssetBundleAsync(ETTask tcs, string bundlePackageName)
+        /// <summary>
+        /// 异步加载LoadBase的AssetBundle
+        /// </summary>
+        internal async ETTask LoadAssetBundleAsync(string bundlePackageName)
         {
             AddRefCount();
             if (_loadState == LoadState.Finish)
             {
-                tcs.SetResult();
                 return;
             }
-            if (_loadState == LoadState.Loading)
+            BundleRuntimeInfo bundleRuntimeInfo = AssetComponent.BundleNameToRuntimeInfo[bundlePackageName];
+            string assetBundlePath = AssetComponent.BundleFileExistPath(bundlePackageName, AssetBundleName, bundleRuntimeInfo.Encrypt);
+            //获取一个协程锁
+            CoroutineLock coroutineLock = await CoroutineLockComponent.Wait(CoroutineLockType.BundleMaster, LoadPathConvertHelper.LoadPathConvert(assetBundlePath));
+            if (_loadState == LoadState.NoLoad)
             {
-                _loadFinishTasks.Add(tcs);
-                return;
+                _loadState = LoadState.Loading;
+                if (bundleRuntimeInfo.Encrypt)
+                {
+                    await LoadDataFinish(assetBundlePath, bundleRuntimeInfo.SecretKey);
+                }
+                else
+                {
+                    await LoadBundleFinish(assetBundlePath);
+                }
+                _loadState = LoadState.Finish;
             }
-            _loadFinishTasks.Add(tcs);
-            _loadState = LoadState.Loading;
-            
-            if (AssetComponent.BundleNameToRuntimeInfo[bundlePackageName].Encrypt)
-            {
-                string assetBundlePath = AssetComponent.BundleFileExistPath(bundlePackageName, AssetBundleName, true);
-                await LoadDataFinish(assetBundlePath, bundlePackageName);
-            }
-            else
-            {
-                string assetBundlePath = AssetComponent.BundleFileExistPath(bundlePackageName, AssetBundleName, false);
-                LoadBundleFinish(assetBundlePath);
-            }
+            //协程锁解锁
+            coroutineLock.Dispose();
         }
 
         /// <summary>
         /// 通过Byte加载完成(只有启用了异或加密才使用此加载方式)
         /// </summary>
-        private async ETTask LoadDataFinish(string assetBundlePath, string bundlePackageName)
+        private async ETTask LoadDataFinish(string assetBundlePath, char[] bundlePackageSecretKey)
         {
-            byte[] data = await VerifyHelper.GetDecryptDataAsync(assetBundlePath, _loadProgress, AssetComponent.BundleNameToRuntimeInfo[bundlePackageName].SecretKey);
+            byte[] data = await VerifyHelper.GetDecryptDataAsync(assetBundlePath, _loadProgress, bundlePackageSecretKey);
             if (_loadState == LoadState.Finish)
             {
                 return;
             }
+            ETTask tcs = ETTask.Create(true);
             _assetBundleCreateRequest = AssetBundle.LoadFromMemoryAsync(data);
             _assetBundleCreateRequest.completed += operation =>
             {
                 AssetBundle = _assetBundleCreateRequest.assetBundle;
-                for (int i = 0; i < _loadFinishTasks.Count; i++)
-                {
-                    _loadFinishTasks[i].SetResult();
-                }
-                _loadFinishTasks.Clear();
-                _loadState = LoadState.Finish;
+                tcs.SetResult();
                 //判断是否还需要
                 if (_refCount <= 0)
                 {
                     AssetComponent.AddPreUnLoadPool(this);
                 }
             };
+            await tcs;
         }
         
         /// <summary>
         /// 通过路径直接加载硬盘上的AssetBundle
         /// </summary>
-        /// <param name="assetBundlePath"></param>
-        private void LoadBundleFinish(string assetBundlePath)
+        private async ETTask LoadBundleFinish(string assetBundlePath)
         {
             if (_loadState == LoadState.Finish)
             {
                 return;
             }
+            ETTask tcs = ETTask.Create(true);
             _assetBundleCreateRequest = AssetBundle.LoadFromFileAsync(assetBundlePath);
             _assetBundleCreateRequest.completed += operation =>
             {
                 AssetBundle = _assetBundleCreateRequest.assetBundle;
-                for (int i = 0; i < _loadFinishTasks.Count; i++)
-                {
-                    _loadFinishTasks[i].SetResult();
-                }
-                _loadFinishTasks.Clear();
-                _loadState = LoadState.Finish;
+                tcs.SetResult();
                 //判断是否还需要
                 if (_refCount <= 0)
                 {
                     AssetComponent.AddPreUnLoadPool(this);
                 }
             };
+            await tcs;
         }
         
         /// <summary>
@@ -205,7 +191,7 @@ namespace BM
             
             if (AssetComponent.BundleNameToRuntimeInfo[bundlePackageName].Encrypt)
             {
-                string assetBundlePath = AssetComponent.BundleFileExistPath(bundlePackageName, AssetBundleName, true);
+                string assetBundlePath = AssetComponent.BundleFileExistPath(bundlePackageName, AssetBundleName, AssetComponent.BundleNameToRuntimeInfo[bundlePackageName].Encrypt);
                 byte[] data = VerifyHelper.GetDecryptData(assetBundlePath, AssetComponent.BundleNameToRuntimeInfo[bundlePackageName].SecretKey);
                 AssetBundle = AssetBundle.LoadFromMemory(data);
             }
@@ -214,11 +200,6 @@ namespace BM
                 string assetBundlePath = AssetComponent.BundleFileExistPath(bundlePackageName, AssetBundleName, false);
                 AssetBundle = AssetBundle.LoadFromFile(assetBundlePath);
             }
-            for (int i = 0; i < _loadFinishTasks.Count; i++)
-            {
-                _loadFinishTasks[i].SetResult();
-            }
-            _loadFinishTasks.Clear();
             _loadState = LoadState.Finish;
             //判断是否还需要
             if (_refCount <= 0)

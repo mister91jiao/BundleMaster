@@ -37,12 +37,6 @@ namespace BM
         /// 加载的状态
         /// </summary>
         internal LoadState LoadState = LoadState.NoLoad;
-        
-        /// <summary>
-        /// 异步等待加载的Task
-        /// </summary>
-        internal List<ETTask> AwaitEtTasks = new List<ETTask>();
-
 
         internal LoadHandler(bool isPool)
         {
@@ -72,24 +66,24 @@ namespace BM
                     AssetLogHelper.LogError("没有找到资源组: " + groupPath);
                     return;
                 }
-                _loadBase = loadGroup;
+                LoadBase = loadGroup;
                 //需要记录loadGroup的依赖
                 for (int i = 0; i < loadGroup.DependFileName.Count; i++)
                 {
                     string dependFile = loadGroup.DependFileName[i];
                     if (AssetComponent.BundleNameToRuntimeInfo[BundlePackageName].LoadDependDic.TryGetValue(dependFile, out LoadDepend loadDepend))
                     {
-                        _loadDepends.Add(loadDepend);
+                        LoadDepends.Add(loadDepend);
                         continue;
                     }
                     if (AssetComponent.BundleNameToRuntimeInfo[BundlePackageName].LoadFileDic.TryGetValue(dependFile, out LoadFile loadDependFile))
                     {
-                        _loadDependFiles.Add(loadDependFile);
+                        LoadDependFiles.Add(loadDependFile);
                         continue;
                     }
                     if (AssetComponent.BundleNameToRuntimeInfo[BundlePackageName].LoadGroupDic.TryGetValue(dependFile, out LoadGroup loadDependGroup))
                     {
-                        _loadDependGroups.Add(loadDependGroup);
+                        LoadDependGroups.Add(loadDependGroup);
                         continue;
                     }
                     AssetLogHelper.LogError("依赖的资源没有找到对应的类: " + dependFile);
@@ -102,24 +96,24 @@ namespace BM
                 AssetLogHelper.LogError("没有找到资源: " + AssetPath);
                 return;
             }
-            _loadBase = loadFile;
+            LoadBase = loadFile;
             //需要记录loadFile的依赖
             for (int i = 0; i < loadFile.DependFileName.Length; i++)
             {
                 string dependFile = loadFile.DependFileName[i];
                 if (AssetComponent.BundleNameToRuntimeInfo[BundlePackageName].LoadDependDic.TryGetValue(dependFile, out LoadDepend loadDepend))
                 {
-                    _loadDepends.Add(loadDepend);
+                    LoadDepends.Add(loadDepend);
                     continue;
                 }
                 if (AssetComponent.BundleNameToRuntimeInfo[BundlePackageName].LoadFileDic.TryGetValue(dependFile, out LoadFile loadDependFile))
                 {
-                    _loadDependFiles.Add(loadDependFile);
+                    LoadDependFiles.Add(loadDependFile);
                     continue;
                 }
                 if (AssetComponent.BundleNameToRuntimeInfo[BundlePackageName].LoadGroupDic.TryGetValue(dependFile, out LoadGroup loadDependGroup))
                 {
-                    _loadDependGroups.Add(loadDependGroup);
+                    LoadDependGroups.Add(loadDependGroup);
                     continue;
                 }
                 AssetLogHelper.LogError("依赖的资源没有找到对应的类: " + dependFile);
@@ -131,20 +125,20 @@ namespace BM
         /// </summary>
         internal void Load()
         {
-            _loadBase.LoadAssetBundle(BundlePackageName);
-            for (int i = 0; i < _loadDepends.Count; i++)
+            LoadBase.LoadAssetBundle(BundlePackageName);
+            for (int i = 0; i < LoadDepends.Count; i++)
             {
-                _loadDepends[i].LoadAssetBundle(BundlePackageName);
+                LoadDepends[i].LoadAssetBundle(BundlePackageName);
             }
-            for (int i = 0; i < _loadDependFiles.Count; i++)
+            for (int i = 0; i < LoadDependFiles.Count; i++)
             {
-                _loadDependFiles[i].LoadAssetBundle(BundlePackageName);
+                LoadDependFiles[i].LoadAssetBundle(BundlePackageName);
             }
-            for (int i = 0; i < _loadDependGroups.Count; i++)
+            for (int i = 0; i < LoadDependGroups.Count; i++)
             {
-                _loadDependGroups[i].LoadAssetBundle(BundlePackageName);
+                LoadDependGroups[i].LoadAssetBundle(BundlePackageName);
             }
-            FileAssetBundle = _loadBase.AssetBundle;
+            FileAssetBundle = LoadBase.AssetBundle;
             LoadState = LoadState.Finish;
         }
 
@@ -155,27 +149,28 @@ namespace BM
         {
             LoadState = LoadState.Loading;
             //计算出所有需要加载的Bundle包的总数
-            RefLoadFinishCount = _loadDepends.Count + _loadDependFiles.Count + _loadDependGroups.Count + 1;
+            RefLoadFinishCount = LoadDepends.Count + LoadDependFiles.Count + LoadDependGroups.Count + 1;
             ETTask tcs = ETTask.Create(true);
-            LoadAsyncLoader(_loadBase, tcs).Coroutine();
-            for (int i = 0; i < _loadDepends.Count; i++)
+            LoadAsyncLoader(LoadBase, tcs).Coroutine();
+            for (int i = 0; i < LoadDepends.Count; i++)
             {
-                LoadAsyncLoader(_loadDepends[i], tcs).Coroutine();
+                LoadAsyncLoader(LoadDepends[i], tcs).Coroutine();
             }
-            for (int i = 0; i < _loadDependFiles.Count; i++)
+            for (int i = 0; i < LoadDependFiles.Count; i++)
             {
-                LoadAsyncLoader(_loadDependFiles[i], tcs).Coroutine();
+                LoadAsyncLoader(LoadDependFiles[i], tcs).Coroutine();
             }
-            for (int i = 0; i < _loadDependGroups.Count; i++)
+            for (int i = 0; i < LoadDependGroups.Count; i++)
             {
-                LoadAsyncLoader(_loadDependGroups[i], tcs).Coroutine();
+                LoadAsyncLoader(LoadDependGroups[i], tcs).Coroutine();
             }
             await tcs;
-            if (LoadState != LoadState.Finish)
+            if (LoadState == LoadState.Finish)
             {
-                LoadState = LoadState.Finish;
-                FileAssetBundle = _loadBase.AssetBundle;
+                AssetLogHelper.Log("此资源异步加载时触发了强制加载: " + AssetPath);
             }
+            LoadState = LoadState.Finish;
+            FileAssetBundle = LoadBase.AssetBundle;
         }
         
         /// <summary>
@@ -183,20 +178,20 @@ namespace BM
         /// </summary>
         internal void ForceAsyncLoadFinish()
         {
-            _loadBase.ForceLoadFinish(BundlePackageName);
-            for (int i = 0; i < _loadDepends.Count; i++)
+            LoadBase.ForceLoadFinish(BundlePackageName);
+            for (int i = 0; i < LoadDepends.Count; i++)
             {
-                _loadDepends[i].ForceLoadFinish(BundlePackageName);
+                LoadDepends[i].ForceLoadFinish(BundlePackageName);
             }
-            for (int i = 0; i < _loadDependFiles.Count; i++)
+            for (int i = 0; i < LoadDependFiles.Count; i++)
             {
-                _loadDependFiles[i].ForceLoadFinish(BundlePackageName);
+                LoadDependFiles[i].ForceLoadFinish(BundlePackageName);
             }
-            for (int i = 0; i < _loadDependGroups.Count; i++)
+            for (int i = 0; i < LoadDependGroups.Count; i++)
             {
-                _loadDependGroups[i].ForceLoadFinish(BundlePackageName);
+                LoadDependGroups[i].ForceLoadFinish(BundlePackageName);
             }
-            FileAssetBundle = _loadBase.AssetBundle;
+            FileAssetBundle = LoadBase.AssetBundle;
             LoadState = LoadState.Finish;
         }
         
@@ -208,23 +203,23 @@ namespace BM
             Asset = null;
             FileAssetBundle = null;
             LoadState = LoadState.NoLoad;
-            foreach (LoadDepend loadDepends in _loadDepends)
+            foreach (LoadDepend loadDepends in LoadDepends)
             {
                 loadDepends.SubRefCount();
             }
-            _loadDepends.Clear();
-            foreach (LoadFile loadDependFiles in _loadDependFiles)
+            LoadDepends.Clear();
+            foreach (LoadFile loadDependFiles in LoadDependFiles)
             {
                 loadDependFiles.SubRefCount();
             }
-            _loadDependFiles.Clear();
-            foreach (LoadGroup loadDependGroups in _loadDependGroups)
+            LoadDependFiles.Clear();
+            foreach (LoadGroup loadDependGroups in LoadDependGroups)
             {
                 loadDependGroups.SubRefCount();
             }
-            _loadDependGroups.Clear();
-            _loadBase.SubRefCount();
-            _loadBase = null;
+            LoadDependGroups.Clear();
+            LoadBase.SubRefCount();
+            LoadBase = null;
             //从缓存里取出进池
             if (!AssetComponent.BundleNameToRuntimeInfo.TryGetValue(BundlePackageName, out BundleRuntimeInfo bundleRuntimeInfo))
             {

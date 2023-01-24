@@ -67,6 +67,17 @@ namespace BM
             return crc;
         }
         
+        internal static uint GetCRC32(DownLoadData downLoadData)
+        {
+            uint iCount = (uint)downLoadData.Data.Length;
+            uint crc = 0xFFFFFFFF;
+            for (uint i = 0; i < iCount; i++)
+            {
+                crc = (crc << 8) ^ CRCTable[(crc >> 24) ^ downLoadData.Data[i]];
+            }
+            return crc;
+        }
+        
         /// <summary>
         /// 创建加密过的数据
         /// </summary>
@@ -174,6 +185,9 @@ namespace BM
             return fileLength;
         }
         
+        /// <summary>
+        /// 注意此Table和多线程下载的Table以及打AssetBundle加密用的Table需要一样，其中在多线程下载的Table里还有一份拷贝
+        /// </summary>
         private static readonly UInt32[] CRCTable =
         {
           0x00000000, 0x04c11db7, 0x09823b6e, 0x0d4326d9, 0x130476dc, 0x17c56b6b, 0x1a864db2, 0x1e475005,

@@ -26,24 +26,24 @@ namespace BM
                     AssetLogHelper.LogError("没有找到资源组: " + groupPath);
                     return;
                 }
-                _loadBase = loadGroup;
+                LoadBase = loadGroup;
                 //需要记录loadGroup的依赖
                 for (int i = 0; i < loadGroup.DependFileName.Count; i++)
                 {
                     string dependFile = loadGroup.DependFileName[i];
                     if (AssetComponent.BundleNameToRuntimeInfo[BundlePackageName].LoadDependDic.TryGetValue(dependFile, out LoadDepend loadDepend))
                     {
-                        _loadDepends.Add(loadDepend);
+                        LoadDepends.Add(loadDepend);
                         continue;
                     }
                     if (AssetComponent.BundleNameToRuntimeInfo[BundlePackageName].LoadFileDic.TryGetValue(dependFile, out LoadFile loadDependFile))
                     {
-                        _loadDependFiles.Add(loadDependFile);
+                        LoadDependFiles.Add(loadDependFile);
                         continue;
                     }
                     if (AssetComponent.BundleNameToRuntimeInfo[BundlePackageName].LoadGroupDic.TryGetValue(dependFile, out LoadGroup loadDependGroup))
                     {
-                        _loadDependGroups.Add(loadDependGroup);
+                        LoadDependGroups.Add(loadDependGroup);
                         continue;
                     }
                     AssetLogHelper.LogError("场景依赖的资源没有找到对应的类: " + dependFile);
@@ -56,24 +56,24 @@ namespace BM
                 AssetLogHelper.LogError("没有找到资源: " + AssetPath);
                 return;
             }
-            _loadBase = loadFile;
+            LoadBase = loadFile;
             //需要记录loadFile的依赖
             for (int i = 0; i < loadFile.DependFileName.Length; i++)
             {
                 string dependFile = loadFile.DependFileName[i];
                 if (AssetComponent.BundleNameToRuntimeInfo[BundlePackageName].LoadDependDic.TryGetValue(dependFile, out LoadDepend loadDepend))
                 {
-                    _loadDepends.Add(loadDepend);
+                    LoadDepends.Add(loadDepend);
                     continue;
                 }
                 if (AssetComponent.BundleNameToRuntimeInfo[BundlePackageName].LoadFileDic.TryGetValue(dependFile, out LoadFile loadDependFile))
                 {
-                    _loadDependFiles.Add(loadDependFile);
+                    LoadDependFiles.Add(loadDependFile);
                     continue;
                 }
                 if (AssetComponent.BundleNameToRuntimeInfo[BundlePackageName].LoadGroupDic.TryGetValue(dependFile, out LoadGroup loadDependGroup))
                 {
-                    _loadDependGroups.Add(loadDependGroup);
+                    LoadDependGroups.Add(loadDependGroup);
                     continue;
                 }
                 AssetLogHelper.LogError("场景依赖的资源没有找到对应的类: " + dependFile);
@@ -86,20 +86,20 @@ namespace BM
         /// </summary>
         public void LoadSceneBundle()
         {
-            _loadBase.LoadAssetBundle(BundlePackageName);
-            for (int i = 0; i < _loadDepends.Count; i++)
+            LoadBase.LoadAssetBundle(BundlePackageName);
+            for (int i = 0; i < LoadDepends.Count; i++)
             {
-                _loadDepends[i].LoadAssetBundle(BundlePackageName);
+                LoadDepends[i].LoadAssetBundle(BundlePackageName);
             }
-            for (int i = 0; i < _loadDependFiles.Count; i++)
+            for (int i = 0; i < LoadDependFiles.Count; i++)
             {
-                _loadDependFiles[i].LoadAssetBundle(BundlePackageName);
+                LoadDependFiles[i].LoadAssetBundle(BundlePackageName);
             }
-            for (int i = 0; i < _loadDependGroups.Count; i++)
+            for (int i = 0; i < LoadDependGroups.Count; i++)
             {
-                _loadDependGroups[i].LoadAssetBundle(BundlePackageName);
+                LoadDependGroups[i].LoadAssetBundle(BundlePackageName);
             }
-            FileAssetBundle = _loadBase.AssetBundle;
+            FileAssetBundle = LoadBase.AssetBundle;
         }
         
         /// <summary>
@@ -108,26 +108,26 @@ namespace BM
         public async ETTask LoadSceneBundleAsync(ETTask finishTask)
         {
             //计算出所有需要加载的Bundle包的总数
-            RefLoadFinishCount = _loadDepends.Count + _loadDependFiles.Count + _loadDependGroups.Count + 1;
-            _loadBase.OpenProgress();
-            LoadAsyncLoader(_loadBase, finishTask).Coroutine();
-            for (int i = 0; i < _loadDepends.Count; i++)
+            RefLoadFinishCount = LoadDepends.Count + LoadDependFiles.Count + LoadDependGroups.Count + 1;
+            LoadBase.OpenProgress();
+            LoadAsyncLoader(LoadBase, finishTask).Coroutine();
+            for (int i = 0; i < LoadDepends.Count; i++)
             {
-                _loadDepends[i].OpenProgress();
-                LoadAsyncLoader(_loadDepends[i], finishTask).Coroutine();
+                LoadDepends[i].OpenProgress();
+                LoadAsyncLoader(LoadDepends[i], finishTask).Coroutine();
             }
-            for (int i = 0; i < _loadDependFiles.Count; i++)
+            for (int i = 0; i < LoadDependFiles.Count; i++)
             {
-                _loadDependFiles[i].OpenProgress();
-                LoadAsyncLoader(_loadDependFiles[i], finishTask).Coroutine();
+                LoadDependFiles[i].OpenProgress();
+                LoadAsyncLoader(LoadDependFiles[i], finishTask).Coroutine();
             }
-            for (int i = 0; i < _loadDependGroups.Count; i++)
+            for (int i = 0; i < LoadDependGroups.Count; i++)
             {
-                _loadDependGroups[i].OpenProgress();
-                LoadAsyncLoader(_loadDependGroups[i], finishTask).Coroutine();
+                LoadDependGroups[i].OpenProgress();
+                LoadAsyncLoader(LoadDependGroups[i], finishTask).Coroutine();
             }
             await finishTask;
-            FileAssetBundle = _loadBase.AssetBundle;
+            FileAssetBundle = LoadBase.AssetBundle;
         }
 
         /// <summary>
@@ -146,20 +146,20 @@ namespace BM
             }
             float progress = 0;
             int loadCount = 1;
-            progress += _loadBase.GetProgress();
-            for (int i = 0; i < _loadDepends.Count; i++)
+            progress += LoadBase.GetProgress();
+            for (int i = 0; i < LoadDepends.Count; i++)
             {
-                progress += _loadDepends[i].GetProgress();
+                progress += LoadDepends[i].GetProgress();
                 loadCount++;
             }
-            for (int i = 0; i < _loadDependFiles.Count; i++)
+            for (int i = 0; i < LoadDependFiles.Count; i++)
             {
-                progress += _loadDependFiles[i].GetProgress();
+                progress += LoadDependFiles[i].GetProgress();
                 loadCount++;
             }
-            for (int i = 0; i < _loadDependGroups.Count; i++)
+            for (int i = 0; i < LoadDependGroups.Count; i++)
             {
-                progress += _loadDependGroups[i].GetProgress();
+                progress += LoadDependGroups[i].GetProgress();
                 loadCount++;
             }
             return progress / loadCount;
@@ -171,23 +171,23 @@ namespace BM
         protected override void ClearAsset()
         {
             FileAssetBundle = null;
-            foreach (LoadDepend loadDepends in _loadDepends)
+            foreach (LoadDepend loadDepends in LoadDepends)
             {
                 loadDepends.SubRefCount();
             }
-            _loadDepends.Clear();
-            foreach (LoadFile loadDependFiles in _loadDependFiles)
+            LoadDepends.Clear();
+            foreach (LoadFile loadDependFiles in LoadDependFiles)
             {
                 loadDependFiles.SubRefCount();
             }
-            _loadDependFiles.Clear();
-            foreach (LoadGroup loadDependGroups in _loadDependGroups)
+            LoadDependFiles.Clear();
+            foreach (LoadGroup loadDependGroups in LoadDependGroups)
             {
                 loadDependGroups.SubRefCount();
             }
-            _loadDependGroups.Clear();
-            _loadBase.SubRefCount();
-            _loadBase = null;
+            LoadDependGroups.Clear();
+            LoadBase.SubRefCount();
+            LoadBase = null;
         }
     }
 }

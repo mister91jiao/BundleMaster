@@ -190,60 +190,42 @@ namespace BM
             {
                 bundlePackageName = AssetComponentConfig.DefaultBundlePackageName;
             }
-            
-            T asset = null;
             if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
             {
 #if UNITY_EDITOR
-                asset = AssetDatabase.LoadAssetAtPath<T>(assetPath);
+                return AssetDatabase.LoadAssetAtPath<T>(assetPath);
 #else
                 AssetLogHelper.LogError("加载资源: " + assetPath + " 失败(资源加载Develop模式只能在编辑器下运行)");
+                return null;
 #endif
-                return asset;
             }
-            LoadHandler loadHandler = null;
             if (!BundleNameToRuntimeInfo.TryGetValue(bundlePackageName, out BundleRuntimeInfo bundleRuntimeInfo))
             {
                 AssetLogHelper.LogError(bundlePackageName + "分包没有初始化");
                 return null;
             }
-            if (!bundleRuntimeInfo.AllAssetLoadHandler.TryGetValue(assetPath, out loadHandler))
+            if (!bundleRuntimeInfo.AllAssetLoadHandler.TryGetValue(assetPath, out LoadHandler loadHandler))
             {
                 loadHandler = LoadHandlerFactory.GetLoadHandler(assetPath, bundlePackageName, true, true);
                 bundleRuntimeInfo.AllAssetLoadHandler.Add(assetPath, loadHandler);
                 bundleRuntimeInfo.UnLoadHandler.Add(loadHandler.UniqueId, loadHandler);
             }
+            //加载资源
+            CoroutineLock coroutineLock = await CoroutineLockComponent.Wait(CoroutineLockType.BundleMaster, LoadPathConvertHelper.LoadPathConvert("T|" + assetPath));
             if (loadHandler.LoadState == LoadState.NoLoad)
             {
-                ETTask tcs = ETTask.Create(true);
-                loadHandler.AwaitEtTasks.Add(tcs);
                 await loadHandler.LoadAsync();
                 AssetBundleRequest loadAssetAsync = loadHandler.FileAssetBundle.LoadAssetAsync<T>(assetPath);
+                ETTask tcs = ETTask.Create(true);
                 loadAssetAsync.completed += operation =>
                 {
                     loadHandler.Asset = loadAssetAsync.asset;
-                    asset = loadHandler.Asset as T;
-                    for (int i = 0; i < loadHandler.AwaitEtTasks.Count; i++)
-                    {
-                        ETTask etTask = loadHandler.AwaitEtTasks[i];
-                        etTask.SetResult();
-                    }
-                    loadHandler.AwaitEtTasks.Clear();
+                    tcs.SetResult();
                 };
                 await tcs;
-                return asset;
             }
-            else if (loadHandler.LoadState == LoadState.Loading)
-            {
-                ETTask tcs = ETTask.Create(true);
-                loadHandler.AwaitEtTasks.Add(tcs);
-                await tcs;
-                return (T)loadHandler.Asset;
-            }
-            else
-            {
-                return (T)loadHandler.Asset;
-            }
+            coroutineLock.Dispose();
+            return (T)loadHandler.Asset;
         }
         
         /// <summary>
@@ -295,55 +277,39 @@ namespace BM
             if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
             {
 #if UNITY_EDITOR
-                UnityEngine.Object asset = AssetDatabase.LoadAssetAtPath(assetPath, typeof(UnityEngine.Object));
+                return AssetDatabase.LoadAssetAtPath(assetPath, typeof(UnityEngine.Object));
 #else
-                UnityEngine.Object asset = null;
                 AssetLogHelper.LogError("加载资源: " + assetPath + " 失败(资源加载Develop模式只能在编辑器下运行)");
+                return null;
 #endif
-                return asset;
             }
-            LoadHandler loadHandler = null;
             if (!BundleNameToRuntimeInfo.TryGetValue(bundlePackageName, out BundleRuntimeInfo bundleRuntimeInfo))
             {
                 AssetLogHelper.LogError(bundlePackageName + "分包没有初始化");
                 return null;
             }
-            if (!bundleRuntimeInfo.AllAssetLoadHandler.TryGetValue(assetPath, out loadHandler))
+            if (!bundleRuntimeInfo.AllAssetLoadHandler.TryGetValue(assetPath, out LoadHandler loadHandler))
             {
                 loadHandler = LoadHandlerFactory.GetLoadHandler(assetPath, bundlePackageName, true, true);
                 bundleRuntimeInfo.AllAssetLoadHandler.Add(assetPath, loadHandler);
                 bundleRuntimeInfo.UnLoadHandler.Add(loadHandler.UniqueId, loadHandler);
             }
+            //加载资源
+            CoroutineLock coroutineLock = await CoroutineLockComponent.Wait(CoroutineLockType.BundleMaster, LoadPathConvertHelper.LoadPathConvert("UnityObject|" + assetPath));
             if (loadHandler.LoadState == LoadState.NoLoad)
             {
-                ETTask tcs = ETTask.Create(true);
-                loadHandler.AwaitEtTasks.Add(tcs);
                 await loadHandler.LoadAsync();
                 AssetBundleRequest loadAssetAsync = loadHandler.FileAssetBundle.LoadAssetAsync(assetPath);
+                ETTask tcs = ETTask.Create(true);
                 loadAssetAsync.completed += operation =>
                 {
                     loadHandler.Asset = loadAssetAsync.asset;
-                    for (int i = 0; i < loadHandler.AwaitEtTasks.Count; i++)
-                    {
-                        ETTask etTask = loadHandler.AwaitEtTasks[i];
-                        etTask.SetResult();
-                    }
-                    loadHandler.AwaitEtTasks.Clear();
+                    tcs.SetResult();
                 };
                 await tcs;
-                return loadHandler.Asset;
             }
-            else if (loadHandler.LoadState == LoadState.Loading)
-            {
-                ETTask tcs = ETTask.Create(true);
-                loadHandler.AwaitEtTasks.Add(tcs);
-                await tcs;
-                return loadHandler.Asset;
-            }
-            else
-            {
-                return loadHandler.Asset;
-            }
+            coroutineLock.Dispose();
+            return loadHandler.Asset;
         }
         
         /// <summary>

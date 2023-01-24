@@ -6,10 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEditor;
-using UnityEditor.U2D;
-using Debug = UnityEngine.Debug;
 using UnityEngine.Rendering;
-using UnityEngine.U2D;
 
 namespace BM
 {
@@ -108,83 +105,6 @@ namespace BM
             //打包结束
             sw.Stop();
             AssetLogHelper.Log("打包结束, 耗时" + sw.Elapsed.TotalMilliseconds + " ms \n" + assetLoadTable.BuildBundlePath);
-        }
-        
-        [MenuItem("Tools/BuildAsset/Copy资源到StreamingAssets")]
-        public static void CopyToStreamingAssets()
-        {
-            if (!Directory.Exists(Application.streamingAssetsPath))
-            {
-                Directory.CreateDirectory(Application.streamingAssetsPath);
-            }
-            DeleteHelper.DeleteDir(Application.streamingAssetsPath);
-            AssetLoadTable assetLoadTable = AssetDatabase.LoadAssetAtPath<AssetLoadTable>(BundleMasterWindow.AssetLoadTablePath);
-            foreach (AssetsSetting assetsSetting in assetLoadTable.AssetsSettings)
-            {
-                if (!(assetsSetting is AssetsLoadSetting assetsLoadSetting))
-                {
-                    continue;
-                }
-                string assetPathFolder;
-                if (assetsLoadSetting.EncryptAssets)
-                {
-                    assetPathFolder = Path.Combine(assetLoadTable.BuildBundlePath + "/../", assetLoadTable.EncryptPathFolder, assetsLoadSetting.BuildName);
-                }
-                else
-                {
-                    assetPathFolder = Path.Combine(assetLoadTable.BuildBundlePath, assetsLoadSetting.BuildName);
-                }
-                string directoryPath = Path.Combine(Application.streamingAssetsPath, assetsLoadSetting.BuildName);
-                if (!Directory.Exists(directoryPath))
-                {
-                    Directory.CreateDirectory(directoryPath);
-                }
-                DirectoryInfo subBundlePath = new DirectoryInfo(assetPathFolder);
-                FileInfo[] fileInfos = subBundlePath.GetFiles();
-                foreach (FileInfo fileInfo in fileInfos)
-                {
-                    if (fileInfo.DirectoryName == null)
-                    {
-                        AssetLogHelper.LogError("找不到文件的路径: " + fileInfo.Name);
-                        continue;
-                    }
-                    string filePath = Path.Combine(fileInfo.DirectoryName, fileInfo.Name);
-                    string suffix = Path.GetExtension(filePath);
-                    if ((!fileInfo.Name.StartsWith("shader_") && string.IsNullOrWhiteSpace(suffix)) || suffix == ".manifest")
-                    {
-                        continue;
-                    }
-                    File.Copy(filePath, Path.Combine(directoryPath, fileInfo.Name));
-                }
-            }
-            foreach (AssetsSetting assetsSetting in assetLoadTable.AssetsSettings)
-            {
-                if (!(assetsSetting is AssetsOriginSetting assetsOriginSetting))
-                {
-                    continue;
-                }
-                string assetPathFolder = Path.Combine(assetLoadTable.BuildBundlePath, assetsOriginSetting.BuildName);
-                string directoryPath = Path.Combine(Application.streamingAssetsPath, assetsOriginSetting.BuildName);
-                if (!Directory.Exists(directoryPath))
-                {
-                    Directory.CreateDirectory(directoryPath);
-                }
-                //获取所有资源目录
-                HashSet<string> files = new HashSet<string>();
-                HashSet<string> dirs = new HashSet<string>();
-                BuildAssetsTools.GetOriginsPath(assetPathFolder, files, dirs);
-                //Copy资源
-                foreach (string dir in dirs)
-                {
-                    Directory.CreateDirectory(dir.Replace(assetPathFolder, directoryPath));
-                }
-                foreach (string file in files)
-                {
-                    File.Copy(file, file.Replace(assetPathFolder, directoryPath), true);
-                }
-            }
-            AssetDatabase.Refresh();
-            AssetLogHelper.Log("已将资源复制到StreamingAssets");
         }
         
         private static void Build(AssetLoadTable assetLoadTable, AssetsLoadSetting assetsLoadSetting, HashSet<string> assetLoadPath, HashSet<string> alwaysIncludedShaders)
