@@ -55,7 +55,7 @@ namespace BM
                 }
             }
             DownLoadAction?.Invoke(nowTime);
-            
+            CoroutineLockComponent.UpDate();
         }
     }
 }

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using ET;
 
 namespace BM
 {
@@ -19,7 +18,7 @@ namespace BM
         /// 缓存池的池
         /// </summary>
         internal static readonly Queue<Queue<CoroutineLock>> CoroutineLockQueuePool = new Queue<Queue<CoroutineLock>>();
-
+        
         public static async ETTask<CoroutineLock> Wait(CoroutineLockType coroutineLockType, long key)
         {
             if (!CoroutineLockTypeToQueue.TryGetValue(coroutineLockType, out CoroutineLockQueue coroutineLockQueue))
@@ -32,6 +31,28 @@ namespace BM
             await coroutineLock.Wait();
             return coroutineLock;
         }
+
+        public static void UpDate()
+        {
+            for (int i = 0; i < TaskDic.Count; i++)
+            {
+                TaskDic[i].SetResult();
+            }
+            TaskDic.Clear();
+        }
+
+        private static readonly List<ETTask> TaskDic = new List<ETTask>();
+
+        /// <summary>
+        /// 等待一个帧循环执行
+        /// </summary>
+        internal static ETTask WaitTask()
+        {
+            ETTask tcs = ETTask.Create(true);
+            TaskDic.Add(tcs);
+            return tcs;
+        }
+
     }
 }
 
