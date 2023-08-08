@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using ET;
 using UnityEngine.Networking;
 
@@ -90,9 +91,8 @@ namespace BM
                 {
                     CreateUpdateLogFile(crcLogPath, null);
                 }
-                StreamWriter crcStream = new StreamWriter(crcLogPath, true);
-                crcStream.AutoFlush = false;
-                updateBundleDataInfo.PackageCRCFile.Add(bundlePackageName, crcStream);
+                //把CRCLogPath的分包名存起来
+                updateBundleDataInfo.PackageCRCFile.Add(bundlePackageName, null);
                 //获取本地的VersionLog
                 string localVersionLogExistPath = BundleFileExistPath(bundlePackageName, "VersionLogs.txt", true);
                 ETTask logTcs = ETTask.Create();
@@ -136,19 +136,14 @@ namespace BM
             }
             else
             {
-                //不需要更新，关闭CRC文件写入流
-                foreach (StreamWriter sw in updateBundleDataInfo.PackageCRCFile.Values)
-                {
-                    sw.Close();
-                    sw.Dispose();
-                }
+                //如果不需要更新就清理CRC路径
                 updateBundleDataInfo.PackageCRCFile.Clear();
             }
             return updateBundleDataInfo;
         }
         
         /// <summary>
-        /// 获取所哟需要更新的Bundle的文件(不检查文件CRC)
+        /// 获取所有需要更新的Bundle的文件(不检查文件CRC)
         /// </summary>
         private static async ETTask CalcNeedUpdateBundle(UpdateBundleDataInfo updateBundleDataInfo, string bundlePackageName, string[] remoteVersionData, string[] localVersionData)
         {
@@ -393,6 +388,15 @@ namespace BM
             {
                 AssetLogHelper.LogError("AssetLoadMode != AssetLoadMode.Build 不需要更新");
                 return;
+            }
+            //打开CRCLog文件
+            List<string> bundlePackageNames = updateBundleDataInfo.PackageCRCFile.Keys.ToList();
+            foreach (string bundlePackageName in bundlePackageNames)
+            {
+                string crcLogPath = Path.Combine(AssetComponentConfig.HotfixPath, bundlePackageName, "CRCLog.txt");
+                StreamWriter crcStream = new StreamWriter(crcLogPath, true);
+                crcStream.AutoFlush = false;
+                updateBundleDataInfo.PackageCRCFile[bundlePackageName] = crcStream;
             }
             Dictionary<string, Queue<DownLoadTask>> packageDownLoadTask = new Dictionary<string, Queue<DownLoadTask>>();
             ETTask downLoading = ETTask.Create();
