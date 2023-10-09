@@ -2,12 +2,16 @@
 using ET;
 using System.Collections.Generic;
 using System.IO;
-using LMTD;
 using UnityEngine.Networking;
 using UnityEngine;
 
+#if !BMWebGL
+using LMTD;
+#endif
+
 namespace BM
 {
+#if !BMWebGL
     public class DownLoadTask
     {
         public UpdateBundleDataInfo UpdateBundleDataInfo;
@@ -156,7 +160,6 @@ namespace BM
             DownLoadingKey.SetResult();
         }
         
-        
-        
     }
+#endif
 }

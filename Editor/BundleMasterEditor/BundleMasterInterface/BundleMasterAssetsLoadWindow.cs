@@ -104,6 +104,7 @@ namespace BM
                     needFlush = true;
                 }
             }
+#if !(Nintendo_Switch || BMWebGL)
             GUILayout.Label("生成加密资源: ", GUILayout.Width(_w / 12), GUILayout.ExpandWidth(false));
             bool encryptAssets = false;
             if (!noLoadSetting)
@@ -134,6 +135,7 @@ namespace BM
                     needFlush = true;
                 }
             }
+#endif
             GUILayout.EndHorizontal();
             //遍历
             if (!noLoadSetting)

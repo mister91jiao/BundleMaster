@@ -42,6 +42,7 @@ namespace BM
                 _timer = 0;
                 AutoAddToTrueUnLoadPool();
             }
+
             //更新下载完成任务
             lock (DownloadBundleHelper.DownLoadFinishQueue)
             {
@@ -55,7 +56,19 @@ namespace BM
                 }
             }
             DownLoadAction?.Invoke(nowTime);
+            
+            
             CoroutineLockComponent.UpDate();
+        }
+
+        /// <summary>
+        /// 游戏关闭时调用
+        /// </summary>
+        public static void Destroy()
+        {
+#if !BMWebGL
+            LMTD.ThreadFactory.Destroy();
+#endif
         }
     }
 }

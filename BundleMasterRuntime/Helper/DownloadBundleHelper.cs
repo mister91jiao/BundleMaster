@@ -2,7 +2,10 @@
 using System.Threading.Tasks;
 using UnityEngine.Networking;
 using ET;
+
+#if !BMWebGL
 using LMTD;
+#endif
 
 namespace BM
 {
@@ -46,6 +49,7 @@ namespace BM
             }
         }
         
+
         public static async ETTask<DownLoadData> DownloadRefDataByUrl(string url)
         {
             DownLoadData downLoadData = DownLoadData.Get();
@@ -90,6 +94,8 @@ namespace BM
         /// 下载完成回调位
         /// </summary>
         internal static readonly Queue<ETTask> DownLoadFinishQueue = new Queue<ETTask>();
+        
+#if !BMWebGL
 
         /// <summary>
         /// 多线程下载资源直存
@@ -171,6 +177,7 @@ namespace BM
             lmtDownLoad.Dispose();
             return lmtDownLoad.LmtDownloadInfo;
         }
+#endif
         
     }
 
@@ -202,6 +209,6 @@ namespace BM
         {
             DownLoadDataPool.Clear();
         }
+        
     }
-    
 }

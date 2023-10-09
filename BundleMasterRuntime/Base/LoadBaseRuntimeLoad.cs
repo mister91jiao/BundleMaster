@@ -26,11 +26,13 @@ namespace BM
         /// </summary>
         public AssetBundle AssetBundle = null;
 
+#if !Nintendo_Switch
         /// <summary>
         /// 需要统计进度
         /// </summary>
         private WebLoadProgress _loadProgress = null;
-
+#endif
+        
         private void AddRefCount()
         {
             _refCount++;
@@ -59,6 +61,8 @@ namespace BM
                 AssetComponent.AddPreUnLoadPool(this);
             }
         }
+
+#if !(BMWebGL || Nintendo_Switch)
 
         internal void LoadAssetBundle(string bundlePackageName)
         {
@@ -207,7 +211,7 @@ namespace BM
                 AssetComponent.AddPreUnLoadPool(this);
             }
         }
-        
+
         /// <summary>
         /// 打开进度统计
         /// </summary>
@@ -215,7 +219,7 @@ namespace BM
         {
             _loadProgress = new WebLoadProgress();
         }
-        
+
         internal float GetProgress()
         {
             if (_loadProgress == null)
@@ -246,6 +250,9 @@ namespace BM
             }
             return (_assetBundleCreateRequest.progress + 1.0f) / 2;
         }
+
+#endif
+        
         
     }
 

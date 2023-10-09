@@ -14,6 +14,7 @@ namespace BM
         /// </summary>
         internal static readonly Dictionary<string, BundleRuntimeInfo> BundleNameToRuntimeInfo = new Dictionary<string, BundleRuntimeInfo>();
 
+#if !(Nintendo_Switch || BMWebGL)
         /// <summary>
         /// 初始化
         /// </summary>
@@ -192,6 +193,7 @@ namespace BM
             }
             await tcs;
         }
+#endif
         
     }
 }

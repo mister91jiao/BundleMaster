@@ -10,6 +10,7 @@ namespace BM
 {
     public static partial class AssetComponent
     {
+#if !(Nintendo_Switch || BMWebGL)
         /// <summary>
         /// 检查分包是否需要更新
         /// </summary>
@@ -496,6 +497,8 @@ namespace BM
             updateBundleDataInfo.FinishCallback?.Invoke();
             AssetLogHelper.LogError("下载完成");
         }
+        
+#endif 
         
     }
     

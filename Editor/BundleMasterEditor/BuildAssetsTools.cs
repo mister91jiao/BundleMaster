@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using UnityEditor;
@@ -81,10 +82,29 @@ namespace BM
                 }
                 using (FileStream fs = new FileStream(Path.Combine(encryptAssetPath, assetBundle), FileMode.OpenOrCreate))
                 {
-                    byte[] encryptBytes = VerifyHelper.CreateEncryptData(bundlePath, secretKey);
+                    byte[] encryptBytes = CreateEncryptData(bundlePath, secretKey);
                     fs.Write(encryptBytes, 0, encryptBytes.Length);
                 }
             }
+        }
+        
+        /// <summary>
+        /// 创建加密过的数据
+        /// </summary>
+        private static byte[] CreateEncryptData(string filePath, string secretKey)
+        {
+            byte[] encryptData;
+            char[] key = secretKey.ToCharArray();
+            using (FileStream fs = new FileStream(filePath, FileMode.Open))
+            {
+                encryptData = new byte[fs.Length];
+                fs.Read(encryptData, 0, encryptData.Length);
+                for (int i = 0; i < encryptData.Length; i++)
+                {
+                    encryptData[i] = (byte)(encryptData[i] ^ key[i % key.Length]);
+                }
+            }
+            return encryptData;
         }
         
         /// <summary>
@@ -195,6 +215,45 @@ namespace BM
                 sb.Append("\t}\n");
                 sb.Append("}");
                 sw.WriteLine(sb.ToString());
+            }
+        }
+        
+        /// <summary>
+        /// 得到一个路径下文件的大小
+        /// </summary>
+        public static long GetFileLength(string filePath)
+        {
+            long fileLength;
+            using (FileStream fs = new FileStream(filePath, FileMode.Open))
+            {
+                fileLength = fs.Length;
+            }
+            return fileLength;
+        }
+        
+        public static void DeleteDir(string srcPath)
+        {
+            try
+            {
+                DirectoryInfo buildBundlePath = new DirectoryInfo(srcPath);
+                FileSystemInfo[] fileSystemInfos = buildBundlePath.GetFileSystemInfos();
+                foreach (FileSystemInfo fileSystemInfo in fileSystemInfos)
+                {
+                    if (fileSystemInfo is DirectoryInfo)
+                    {
+                        DirectoryInfo subDir = new DirectoryInfo(fileSystemInfo.FullName);
+                        subDir.Delete(true);
+                    }
+                    else
+                    {
+                        File.Delete(fileSystemInfo.FullName);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                AssetLogHelper.LogError(e.ToString());
+                throw;
             }
         }
     }

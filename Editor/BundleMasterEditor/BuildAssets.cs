@@ -32,7 +32,7 @@ namespace BM
             {
                 Directory.CreateDirectory(encryptAssetFolderPath);
             }
-            DeleteHelper.DeleteDir(encryptAssetFolderPath);
+            BuildAssetsTools.DeleteDir(encryptAssetFolderPath);
             //记录工程包含的Shader
             HashSet<string> alwaysIncludedShaders = new HashSet<string>();
             Object graphicsSettings = 
@@ -396,6 +396,7 @@ namespace BM
                 assetsLoadSetting.BuildAssetBundleOptions, EditorUserBuildSettings.activeBuildTarget);
             //保存未加密的版本号文件
             SaveBundleVersionFile(bundlePackagePath, manifest, assetsLoadSetting, false);
+#if !(Nintendo_Switch || BMWebGL)
             //如果此分包需要加密就生成加密的资源
             if (assetsLoadSetting.EncryptAssets)
             {
@@ -409,6 +410,7 @@ namespace BM
                 File.Copy(Path.Combine(assetLoadTable.BuildBundlePath, assetsLoadSetting.BuildName, "DependLogs.txt"), Path.Combine(encryptAssetPath, "DependLogs.txt"));
                 File.Copy(Path.Combine(assetLoadTable.BuildBundlePath, assetsLoadSetting.BuildName, "GroupLogs.txt"), Path.Combine(encryptAssetPath, "GroupLogs.txt"));
             }
+#endif
             //存储记录所有资源的加载路径
             foreach (string assetPath in loadFileDic.Keys)
             {
@@ -439,7 +441,7 @@ namespace BM
             {
                 Directory.CreateDirectory(filePath);
             }
-            DeleteHelper.DeleteDir(filePath);
+            BuildAssetsTools.DeleteDir(filePath);
             //获取所有资源目录
             HashSet<string> files = new HashSet<string>();
             HashSet<string> dirs = new HashSet<string>();
@@ -547,7 +549,7 @@ namespace BM
                 {
                     string bundlePath = Path.Combine(bundlePackagePath, assetBundle);
                     uint crc32 = VerifyHelper.GetCRC32(File.ReadAllBytes(bundlePath));
-                    string info = assetBundle + "|" + VerifyHelper.GetFileLength(bundlePath) + "|" + crc32 + "\n";
+                    string info = assetBundle + "|" + BuildAssetsTools.GetFileLength(bundlePath) + "|" + crc32 + "\n";
                     sb.Append(info);
                 }
                 sw.WriteLine(sb.ToString());
@@ -568,7 +570,7 @@ namespace BM
                 {
                     string bundlePath = Path.Combine(bundlePackagePath, filePath);
                     uint crc32 = VerifyHelper.GetCRC32(File.ReadAllBytes(bundlePath));
-                    string info = filePath + "|" + VerifyHelper.GetFileLength(bundlePath) + "|" + crc32 + "\n";
+                    string info = filePath + "|" + BuildAssetsTools.GetFileLength(bundlePath) + "|" + crc32 + "\n";
                     sb.Append(info);
                 }
                 sw.WriteLine(sb.ToString());

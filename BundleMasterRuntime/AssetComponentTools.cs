@@ -6,6 +6,7 @@ namespace BM
 {
     public static partial class AssetComponent
     {
+
         /// <summary>
         /// 获取Bundle信息文件的路径
         /// </summary>

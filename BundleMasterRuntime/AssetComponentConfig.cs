@@ -15,7 +15,7 @@ namespace BM
         /// <summary>
         /// 资源更新目录 Application.dataPath + "/../HotfixBundles/"
         /// </summary>
-        public static string HotfixPath = Application.persistentDataPath;
+        public static string HotfixPath = "";
 
         /// <summary>
         /// 存放本地Bundle的位置 Application.streamingAssetsPath;

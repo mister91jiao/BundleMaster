@@ -24,11 +24,13 @@ namespace BM
         [Header("构建选项")]
         public BuildAssetBundleOptions BuildAssetBundleOptions = BuildAssetBundleOptions.UncompressedAssetBundle;
         
+#if !(Nintendo_Switch || BMWebGL)
         [Header("是否加密资源")]
         [Tooltip("加密启用后会多一步异或操作")] public bool EncryptAssets;
         
         [Header("加密密钥")]
         [Tooltip("进行异或操作的密钥")] public string SecretKey;
+#endif
         
         [Header("资源路径")]
         [Tooltip("需要打包的资源所在的路径(不需要包含依赖, 只包括需要主动加载的资源)")]

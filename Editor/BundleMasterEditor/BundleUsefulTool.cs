@@ -17,7 +17,7 @@ namespace BM
             {
                 Directory.CreateDirectory(Application.streamingAssetsPath);
             }
-            DeleteHelper.DeleteDir(Application.streamingAssetsPath);
+            BuildAssetsTools.DeleteDir(Application.streamingAssetsPath);
             AssetLoadTable assetLoadTable = AssetDatabase.LoadAssetAtPath<AssetLoadTable>(BundleMasterWindow.AssetLoadTablePath);
             foreach (AssetsSetting assetsSetting in assetLoadTable.AssetsSettings)
             {
@@ -26,6 +26,9 @@ namespace BM
                     continue;
                 }
                 string assetPathFolder;
+#if (Nintendo_Switch || BMWebGL)
+                assetPathFolder = Path.Combine(assetLoadTable.BuildBundlePath, assetsLoadSetting.BuildName);
+#else
                 if (assetsLoadSetting.EncryptAssets)
                 {
                     assetPathFolder = Path.Combine(assetLoadTable.BuildBundlePath + "/../", assetLoadTable.EncryptPathFolder, assetsLoadSetting.BuildName);
@@ -34,6 +37,7 @@ namespace BM
                 {
                     assetPathFolder = Path.Combine(assetLoadTable.BuildBundlePath, assetsLoadSetting.BuildName);
                 }
+#endif
                 string directoryPath = Path.Combine(Application.streamingAssetsPath, assetsLoadSetting.BuildName);
                 if (!Directory.Exists(directoryPath))
                 {
@@ -90,14 +94,14 @@ namespace BM
         [MenuItem("Tools/BuildAsset/实用工具/清空热更目录下的文件")]
         public static void ClearHotfixPathPath()
         {
-            DeleteHelper.DeleteDir(AssetComponentConfig.HotfixPath);
+            BuildAssetsTools.DeleteDir(AssetComponentConfig.HotfixPath);
             AssetDatabase.Refresh();
         }
         
         [MenuItem("Tools/BuildAsset/实用工具/清空本地目录下的文件")]
         public static void ClearLocalBundlePath()
         {
-            DeleteHelper.DeleteDir(AssetComponentConfig.LocalBundlePath);
+            BuildAssetsTools.DeleteDir(AssetComponentConfig.LocalBundlePath);
             AssetDatabase.Refresh();
         }
         
@@ -105,14 +109,14 @@ namespace BM
         public static void ClearLocalBuildPath()
         {
             AssetLoadTable assetLoadTable = AssetDatabase.LoadAssetAtPath<AssetLoadTable>(BundleMasterWindow.AssetLoadTablePath);
-            DeleteHelper.DeleteDir(assetLoadTable.BundlePath);
+            BuildAssetsTools.DeleteDir(assetLoadTable.BundlePath);
         }
         
         [MenuItem("Tools/BuildAsset/实用工具/清空加密目录下的文件")]
         public static void ClearLocalEncryptPath()
         {
             AssetLoadTable assetLoadTable = AssetDatabase.LoadAssetAtPath<AssetLoadTable>(BundleMasterWindow.AssetLoadTablePath);
-            DeleteHelper.DeleteDir(assetLoadTable.EncryptPathFolder);
+            BuildAssetsTools.DeleteDir(assetLoadTable.EncryptPathFolder);
         }
     }
     

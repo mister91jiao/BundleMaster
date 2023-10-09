@@ -134,6 +134,7 @@ namespace BM
             GUILayout.EndHorizontal();
             GUILayout.Space(_h / 64);
             GUILayout.BeginHorizontal();
+#if !(Nintendo_Switch || BMWebGL)
             GUILayout.Label("加密文件夹名称: ", GUILayout.Width(_w / 10), GUILayout.ExpandWidth(false));
             string encryptPathFolder = "";
             if (!noTable)
@@ -149,6 +150,7 @@ namespace BM
                     needFlush = true;
                 }
             }
+#endif
             GUILayout.Label("是否生成路径代码: ", GUILayout.Width(_w / 9), GUILayout.ExpandWidth(false));
             bool generatePathCode = false;
             if (!noTable)

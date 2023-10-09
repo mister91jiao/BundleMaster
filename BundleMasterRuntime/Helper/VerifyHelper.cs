@@ -55,7 +55,6 @@ namespace BM
             }
             return fileCRC32;
         }
-
         public static uint GetCRC32(byte[] bytes)
         {
             uint iCount = (uint)bytes.Length;
@@ -76,25 +75,6 @@ namespace BM
                 crc = (crc << 8) ^ CRCTable[(crc >> 24) ^ downLoadData.Data[i]];
             }
             return crc;
-        }
-        
-        /// <summary>
-        /// 创建加密过的数据
-        /// </summary>
-        public static byte[] CreateEncryptData(string filePath, string secretKey)
-        {
-            byte[] encryptData;
-            char[] key = secretKey.ToCharArray();
-            using (FileStream fs = new FileStream(filePath, FileMode.Open))
-            {
-                encryptData = new byte[fs.Length];
-                fs.Read(encryptData, 0, encryptData.Length);
-                for (int i = 0; i < encryptData.Length; i++)
-                {
-                    encryptData[i] = (byte)(encryptData[i] ^ key[i % key.Length]);
-                }
-            }
-            return encryptData;
         }
         
         /// <summary>
@@ -170,19 +150,6 @@ namespace BM
                 }
             }
             return encryptData;
-        }
-        
-        /// <summary>
-        /// 得到一个路径下文件的大小
-        /// </summary>
-        public static long GetFileLength(string filePath)
-        {
-            long fileLength;
-            using (FileStream fs = new FileStream(filePath, FileMode.Open))
-            {
-                fileLength = fs.Length;
-            }
-            return fileLength;
         }
         
         /// <summary>

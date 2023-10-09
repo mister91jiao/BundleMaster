@@ -4,7 +4,7 @@ using ET;
 
 namespace BM
 {
-    public class LoadSceneHandler : LoadHandlerBase
+    public partial class LoadSceneHandler : LoadHandlerBase
     {
         public LoadSceneHandler(string scenePath, string bundlePackageName)
         {
