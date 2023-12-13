@@ -9,7 +9,7 @@ namespace BM
     public static partial class AssetComponent
     {
         /// <summary>
-        /// NintendoSwitch获取Bundle信息文件的路径
+        /// WebGL获取Bundle信息文件的路径
         /// </summary>
         internal static string BundleFileExistPath_WebGL(string bundlePackageName, string fileName)
         {
