@@ -11,7 +11,7 @@ namespace BM
         /// </summary>
         public static void CheckSceneChange(AssetLoadMode assetLoadMode) 
         {
-            AssetLoadTable assetLoadTable = AssetDatabase.LoadAssetAtPath<AssetLoadTable>(BundleMasterWindow.AssetLoadTablePath);
+            AssetLoadTable assetLoadTable = AssetDatabase.LoadAssetAtPath<AssetLoadTable>(BundleMasterAssetsPath.AssetLoadTablePath);
             List<AssetsLoadSetting> assetsLoadSettings = new List<AssetsLoadSetting>();
             foreach (AssetsSetting assetsSetting in assetLoadTable.AssetsSettings)
             {

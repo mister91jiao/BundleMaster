@@ -17,8 +17,9 @@ namespace BM
             {
                 Directory.CreateDirectory(Application.streamingAssetsPath);
             }
-            BuildAssetsTools.DeleteDir(Application.streamingAssetsPath);
-            AssetLoadTable assetLoadTable = AssetDatabase.LoadAssetAtPath<AssetLoadTable>(BundleMasterWindow.AssetLoadTablePath);
+            string[] excludeDirectory = new [] { "Audio", "LocalBundle"};
+            BuildAssetsTools.DeleteDir(Application.streamingAssetsPath, excludeDirectory);
+            AssetLoadTable assetLoadTable = AssetDatabase.LoadAssetAtPath<AssetLoadTable>(BundleMasterAssetsPath.AssetLoadTablePath);
             foreach (AssetsSetting assetsSetting in assetLoadTable.AssetsSettings)
             {
                 if (!(assetsSetting is AssetsLoadSetting assetsLoadSetting))
@@ -39,10 +40,12 @@ namespace BM
                 }
 #endif
                 string directoryPath = Path.Combine(Application.streamingAssetsPath, assetsLoadSetting.BuildName);
-                if (!Directory.Exists(directoryPath))
+                
+                if (Directory.Exists(directoryPath))
                 {
-                    Directory.CreateDirectory(directoryPath);
+                    BuildAssetsTools.DeleteDir(directoryPath);
                 }
+                Directory.CreateDirectory(directoryPath);
                 DirectoryInfo subBundlePath = new DirectoryInfo(assetPathFolder);
                 FileInfo[] fileInfos = subBundlePath.GetFiles();
                 foreach (FileInfo fileInfo in fileInfos)
@@ -108,14 +111,14 @@ namespace BM
         [MenuItem("Tools/BuildAsset/实用工具/清空打包目录下的文件")]
         public static void ClearLocalBuildPath()
         {
-            AssetLoadTable assetLoadTable = AssetDatabase.LoadAssetAtPath<AssetLoadTable>(BundleMasterWindow.AssetLoadTablePath);
+            AssetLoadTable assetLoadTable = AssetDatabase.LoadAssetAtPath<AssetLoadTable>(BundleMasterAssetsPath.AssetLoadTablePath);
             BuildAssetsTools.DeleteDir(assetLoadTable.BundlePath);
         }
         
         [MenuItem("Tools/BuildAsset/实用工具/清空加密目录下的文件")]
         public static void ClearLocalEncryptPath()
         {
-            AssetLoadTable assetLoadTable = AssetDatabase.LoadAssetAtPath<AssetLoadTable>(BundleMasterWindow.AssetLoadTablePath);
+            AssetLoadTable assetLoadTable = AssetDatabase.LoadAssetAtPath<AssetLoadTable>(BundleMasterAssetsPath.AssetLoadTablePath);
             BuildAssetsTools.DeleteDir(assetLoadTable.EncryptPathFolder);
         }
     }

@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEditor;
 using UnityEngine.Rendering;
+using Debug = UnityEngine.Debug;
 
 namespace BM
 {
@@ -17,7 +18,7 @@ namespace BM
         {
             Stopwatch sw = new Stopwatch();
             sw.Start();
-            AssetLoadTable assetLoadTable = AssetDatabase.LoadAssetAtPath<AssetLoadTable>(BundleMasterWindow.AssetLoadTablePath);
+            AssetLoadTable assetLoadTable = AssetDatabase.LoadAssetAtPath<AssetLoadTable>(BundleMasterAssetsPath.AssetLoadTablePath);
             List<AssetsSetting> assetsSettings = assetLoadTable.AssetsSettings;
             //开始构建前剔除多余场景
             List<EditorBuildSettingsScene> editorBuildSettingsScenes = new List<EditorBuildSettingsScene>();
@@ -392,8 +393,10 @@ namespace BM
             SaveLoadLog(assetLoadTable, assetsLoadSetting, loadFileDic, loadDependDic, loadGroupDic);
             //开始打包
             string bundlePackagePath = Path.Combine(assetLoadTable.BuildBundlePath, assetsLoadSetting.BuildName);
+            
             AssetBundleManifest manifest = BuildPipeline.BuildAssetBundles(bundlePackagePath, allAssetBundleBuild.ToArray(), 
                 assetsLoadSetting.BuildAssetBundleOptions, EditorUserBuildSettings.activeBuildTarget);
+            
             //保存未加密的版本号文件
             SaveBundleVersionFile(bundlePackagePath, manifest, assetsLoadSetting, false);
 #if !(Nintendo_Switch || BMWebGL)
@@ -409,6 +412,20 @@ namespace BM
                 File.Copy(Path.Combine(assetLoadTable.BuildBundlePath, assetsLoadSetting.BuildName, "FileLogs.txt"), Path.Combine(encryptAssetPath, "FileLogs.txt"));
                 File.Copy(Path.Combine(assetLoadTable.BuildBundlePath, assetsLoadSetting.BuildName, "DependLogs.txt"), Path.Combine(encryptAssetPath, "DependLogs.txt"));
                 File.Copy(Path.Combine(assetLoadTable.BuildBundlePath, assetsLoadSetting.BuildName, "GroupLogs.txt"), Path.Combine(encryptAssetPath, "GroupLogs.txt"));
+            }
+            
+            //如果此分包需要偏移处理偏移资源
+            if (assetsLoadSetting.Offset)
+            {
+                string offsetAssetPath = Path.Combine(assetLoadTable.BuildBundlePath + "/../", assetLoadTable.OffsetPathFolder, assetsLoadSetting.BuildName);
+                //创建偏移的资源
+                BuildAssetsTools.CreateOffsetAssets(bundlePackagePath, offsetAssetPath, manifest, assetsLoadSetting.SecretKey);
+                //保存偏移的版本号文件
+                SaveBundleVersionFile(offsetAssetPath, manifest, assetsLoadSetting, true);
+                //复制Log信息
+                File.Copy(Path.Combine(assetLoadTable.BuildBundlePath, assetsLoadSetting.BuildName, "FileLogs.txt"), Path.Combine(offsetAssetPath, "FileLogs.txt"));
+                File.Copy(Path.Combine(assetLoadTable.BuildBundlePath, assetsLoadSetting.BuildName, "DependLogs.txt"), Path.Combine(offsetAssetPath, "DependLogs.txt"));
+                File.Copy(Path.Combine(assetLoadTable.BuildBundlePath, assetsLoadSetting.BuildName, "GroupLogs.txt"), Path.Combine(offsetAssetPath, "GroupLogs.txt"));
             }
 #endif
             //存储记录所有资源的加载路径

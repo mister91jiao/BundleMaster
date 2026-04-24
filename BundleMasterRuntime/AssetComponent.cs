@@ -383,6 +383,7 @@ namespace BM
             {
                 bundlePackageName = AssetComponentConfig.DefaultBundlePackageName;
             }
+            
             LoadSceneHandler loadSceneHandler = new LoadSceneHandler(scenePath, bundlePackageName);
             if (AssetComponentConfig.AssetLoadMode == AssetLoadMode.Develop)
             {

@@ -108,6 +108,48 @@ namespace BM
         }
         
         /// <summary>
+        /// 创建偏移的AssetBundle
+        /// </summary>
+        public static void CreateOffsetAssets(string bundlePackagePath, string offsetAssetPath, AssetBundleManifest manifest, string secretKey)
+        {
+            string[] assetBundles = manifest.GetAllAssetBundles();
+            foreach (string assetBundle in assetBundles)
+            {
+                string bundlePath = Path.Combine(bundlePackagePath, assetBundle);
+                if (!Directory.Exists(offsetAssetPath))
+                {
+                    Directory.CreateDirectory(offsetAssetPath);
+                }
+                using (FileStream fs = new FileStream(Path.Combine(offsetAssetPath, assetBundle), FileMode.OpenOrCreate))
+                {
+                    // assetBundle
+                    byte[] encryptBytes = CreateOffsetData(bundlePath, secretKey);
+                    
+                    fs.Write(encryptBytes, 0, encryptBytes.Length);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 创建偏移过的数据
+        /// </summary>
+        private static byte[] CreateOffsetData(string filePath, string secretKey)
+        {
+            byte[] encryptData;
+            char[] key = secretKey.ToCharArray();
+            using (FileStream fs = new FileStream(filePath, FileMode.Open))
+            {
+                encryptData = new byte[fs.Length];
+                fs.Read(encryptData, 0, encryptData.Length);
+                for (int i = 0; i < encryptData.Length; i++)
+                {
+                    encryptData[i] = (byte)(encryptData[i] ^ key[i % key.Length]);
+                }
+            }
+            return encryptData;
+        }
+        
+        /// <summary>
         /// 需要忽略加载的格式
         /// </summary>
         public static bool CantLoadType(string fileFullName)
@@ -231,7 +273,12 @@ namespace BM
             return fileLength;
         }
         
-        public static void DeleteDir(string srcPath)
+        /// <summary>
+        /// 删除文件夹
+        /// </summary>
+        /// <param name="srcPath">根目录</param>
+        /// <param name="excludeDirectory">排除目录, 只限根目录的子目录</param>
+        public static void DeleteDir(string srcPath, string[] excludeDirectory = null)
         {
             try
             {
@@ -241,6 +288,22 @@ namespace BM
                 {
                     if (fileSystemInfo is DirectoryInfo)
                     {
+                        bool isExclude = false;
+                        if (excludeDirectory != null)
+                        {
+                            foreach (string excludeDirectoryName in excludeDirectory)
+                            {
+                                if (fileSystemInfo.Name == excludeDirectoryName)
+                                {
+                                    isExclude = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (isExclude)
+                        {
+                            continue;
+                        }
                         DirectoryInfo subDir = new DirectoryInfo(fileSystemInfo.FullName);
                         subDir.Delete(true);
                     }

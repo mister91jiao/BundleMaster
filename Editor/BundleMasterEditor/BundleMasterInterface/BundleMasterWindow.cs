@@ -30,25 +30,7 @@ namespace BM
         private static int _w = 960;
         private static int _h = 540;
         
-        /// <summary>
-        /// 运行时配置文件的路径
-        /// </summary>
-        public static string RuntimeConfigPath = "Assets/Resources/BMConfig.asset";
         
-        /// <summary>
-        /// 分包文件资源索引配置
-        /// </summary>
-        public static string AssetLoadTablePath = "Assets/Editor/BundleMasterEditor/BuildSettings/AssetLoadTable.asset";
-
-        /// <summary>
-        /// 分包配置信息
-        /// </summary>
-        public static string AssetsLoadSettingPath = "Assets/Editor/BundleMasterEditor/BuildSettings/AssetsLoadSetting";
-        
-        /// <summary>
-        /// 原生资源包配置信息
-        /// </summary>
-        public static string AssetsOriginSettingPath = "Assets/Editor/BundleMasterEditor/BuildSettings/AssetsOriginSetting";
         
         private static AssetLoadTable _assetLoadTable = null;
 
@@ -85,7 +67,7 @@ namespace BM
             _instance.maxSize = new Vector2(_w, _h);
             _instance.minSize = new Vector2(_w, _h);
             //加载配置文件
-            _bundleMasterRuntimeConfig = AssetDatabase.LoadAssetAtPath<BundleMasterRuntimeConfig>(RuntimeConfigPath);
+            _bundleMasterRuntimeConfig = AssetDatabase.LoadAssetAtPath<BundleMasterRuntimeConfig>(BundleMasterAssetsPath.RuntimeConfigPath);
             _runtimeConfigLoad = false;
             if (_bundleMasterRuntimeConfig != null)
             {
@@ -108,7 +90,7 @@ namespace BM
                     {
                         Directory.CreateDirectory(Path.Combine(Application.dataPath, "Resources"));
                     }
-                    AssetDatabase.CreateAsset(_bundleMasterRuntimeConfig, RuntimeConfigPath);
+                    AssetDatabase.CreateAsset(_bundleMasterRuntimeConfig, BundleMasterAssetsPath.RuntimeConfigPath);
                     AssetDatabase.Refresh();
                     _runtimeConfigLoad = true;
                 }
@@ -173,11 +155,11 @@ namespace BM
             bool noTable = _assetLoadTable == null;
             if (GUILayout.Button("查找或创建分包配置索引文件", GUILayout.Width(_w / 5.5f), GUILayout.ExpandWidth(true)))
             {
-                _assetLoadTable = AssetDatabase.LoadAssetAtPath<AssetLoadTable>(AssetLoadTablePath);
+                _assetLoadTable = AssetDatabase.LoadAssetAtPath<AssetLoadTable>(BundleMasterAssetsPath.AssetLoadTablePath);
                 if (_assetLoadTable == null)
                 {
                     _assetLoadTable = ScriptableObject.CreateInstance<AssetLoadTable>();
-                    AssetDatabase.CreateAsset(_assetLoadTable, BundleMasterWindow.AssetLoadTablePath);
+                    AssetDatabase.CreateAsset(_assetLoadTable, BundleMasterAssetsPath.AssetLoadTablePath);
                     needFlush = true;
                 }
             }
@@ -188,10 +170,10 @@ namespace BM
                 int index = 0;
                 while (true)
                 {
-                    AssetsLoadSetting assetLoadTable = AssetDatabase.LoadAssetAtPath<AssetsLoadSetting>(AssetsLoadSettingPath + "_" + index + ".asset");
+                    AssetsLoadSetting assetLoadTable = AssetDatabase.LoadAssetAtPath<AssetsLoadSetting>(BundleMasterAssetsPath.AssetsLoadSettingPath + "_" + index + ".asset");
                     if (assetLoadTable == null)
                     {
-                        AssetDatabase.CreateAsset(ScriptableObject.CreateInstance<AssetsLoadSetting>(), AssetsLoadSettingPath + "_" + index + ".asset");
+                        AssetDatabase.CreateAsset(ScriptableObject.CreateInstance<AssetsLoadSetting>(), BundleMasterAssetsPath.AssetsLoadSettingPath + "_" + index + ".asset");
                         break;
                     }
                     else
@@ -208,10 +190,10 @@ namespace BM
                 int index = 0;
                 while (true)
                 {
-                    AssetsOriginSetting assetsOriginSetting = AssetDatabase.LoadAssetAtPath<AssetsOriginSetting>(AssetsOriginSettingPath + "_" + index + ".asset");
+                    AssetsOriginSetting assetsOriginSetting = AssetDatabase.LoadAssetAtPath<AssetsOriginSetting>(BundleMasterAssetsPath.AssetsOriginSettingPath + "_" + index + ".asset");
                     if (assetsOriginSetting == null)
                     {
-                        AssetDatabase.CreateAsset(ScriptableObject.CreateInstance<AssetsOriginSetting>(), AssetsOriginSettingPath + "_" + index + ".asset");
+                        AssetDatabase.CreateAsset(ScriptableObject.CreateInstance<AssetsOriginSetting>(), BundleMasterAssetsPath.AssetsOriginSettingPath + "_" + index + ".asset");
                         break;
                     }
                     else

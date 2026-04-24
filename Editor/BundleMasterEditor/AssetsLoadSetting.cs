@@ -28,6 +28,9 @@ namespace BM
         [Header("是否加密资源")]
         [Tooltip("加密启用后会多一步异或操作")] public bool EncryptAssets;
         
+        [Header("是否添加偏移")]
+        [Tooltip("对AB文件初始添加一次偏移量, 性能比异或加密要好但是安全性低于加密")] public bool Offset;
+        
         [Header("加密密钥")]
         [Tooltip("进行异或操作的密钥")] public string SecretKey;
 #endif
